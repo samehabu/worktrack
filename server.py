@@ -417,7 +417,7 @@ def clock(wid):
                     if loc['username']: manager_name = loc['username']
             db.execute('UPDATE workers SET working=1, clock_start=?, current_location_id=? WHERE id=?',
                        (now, location_id, wid))
-            db.execute('INSERT INTO logs VALUES (?,?,?,?,?,NULL,NULL,0,0,NULL,?,?)',
+            db.execute('INSERT INTO logs VALUES (?,?,?,?,?,NULL,NULL,0,0,NULL,?,?,0)',
                        (uid(), wid, w['name'], manager_name, now, location_id, location_name))
             return jsonify({'status': 'in'})
         else:

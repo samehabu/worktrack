@@ -142,6 +142,7 @@ const T = {
     waitingTitle:"Waiting for Manager",
     waitingSub:"The manager has not opened the workday yet.<br>Please wait.",
     overtimeMsg:"⚠️ You are working overtime!",
+    otSessionActive:"⏱ Overtime session active — approved by manager",
     errServer:"⚠️ Cannot reach server. Make sure the server is running.",
     toastIn:"Clocked in ✓", toastOut:"Clocked out ✓"
   },
@@ -154,6 +155,7 @@ const T = {
     waitingTitle:"في انتظار المدير",
     waitingSub:"لم يفتح المدير يوم العمل بعد.<br>الرجاء الانتظار.",
     overtimeMsg:"⚠️ أنت تعمل إضافيًا!",
+    otSessionActive:"⏱ جلسة وقت إضافي نشطة — موافقة من المدير",
     errServer:"⚠️ لا يمكن الوصول إلى الخادم.",
     toastIn:"تم تسجيل الدخول ✓", toastOut:"تم تسجيل الخروج ✓"
   },
@@ -166,6 +168,7 @@ const T = {
     waitingTitle:"ממתין למנהל",
     waitingSub:"המנהל עדיין לא פתח את יום העבודה.<br>אנא המתן.",
     overtimeMsg:"⚠️ אתה עובד שעות נוספות!",
+    otSessionActive:"⏱ משמרת שעות נוספות פעילה — אושרה על ידי המנהל",
     errServer:"⚠️ לא ניתן להגיע לשרת.",
     toastIn:"נרשמת בהצלחה ✓", toastOut:"יצאת בהצלחה ✓"
   }
@@ -319,12 +322,22 @@ function render(){
   if(w.working&&w.clock_start){
     te.className='timer green'; lb.textContent=t.currentShift;
     cb.textContent=t.clockOut; cb.className='clock-btn out';
+    // Show overtime session banner if manager activated it
+    if(w.overtime_active){
+      otBanner.innerHTML=t.otSessionActive||'⏱ Overtime session active';
+      otBanner.classList.add('show');
+      otBanner.style.background='#fef3c7';
+      otBanner.style.borderColor='#fde68a';
+      otBanner.style.color='#d97706';
+    }
     function tick(){
       const elapsed=Date.now()-w.clock_start;
       te.textContent=hms(elapsed);
       document.getElementById('today-val').textContent=fmt(elapsed);
-      if(elapsed>shiftMs){otBanner.innerHTML=t.overtimeMsg;otBanner.classList.add('show');}
-      else otBanner.classList.remove('show');
+      if(!w.overtime_active){
+        if(elapsed>shiftMs){otBanner.innerHTML=t.overtimeMsg;otBanner.classList.add('show');otBanner.style.background='';otBanner.style.borderColor='';otBanner.style.color='';}
+        else otBanner.classList.remove('show');
+      }
     }
     tick(); interval=setInterval(tick,1000);
   } else {

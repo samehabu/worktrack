@@ -489,6 +489,7 @@ var T = {
     reportLang:'Report Language',viewReport:'View',deleteReport:'Delete',
     errNeedIn:'Clock-in time required.',errOrder:'Clock-out must be after clock-in.',
     workingLbl:'Working',offLbl:'Off',overtimeLbl:'Overtime',managerLbl:'Manager',
+    otSessionOn:'OT Session ON',otSessionOff:'Start OT Session',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
   },
   ar:{
@@ -538,6 +539,7 @@ var T = {
     reportLang:'لغة التقرير',viewReport:'عرض',deleteReport:'حذف',
     errNeedIn:'وقت الدخول مطلوب.',errOrder:'يجب أن يكون وقت الخروج بعد الدخول.',
     workingLbl:'يعمل',offLbl:'غائب',overtimeLbl:'وقت إضافي',managerLbl:'المدير',
+    otSessionOn:'وقت إضافي نشط',otSessionOff:'بدء وقت إضافي',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
   },
   he:{
@@ -587,6 +589,7 @@ var T = {
     reportLang:'שפת הדוח',viewReport:'הצג',deleteReport:'מחק',
     errNeedIn:'שעת כניסה נדרשת.',errOrder:'שעת יציאה חייבת להיות אחרי הכניסה.',
     workingLbl:'עובד',offLbl:'לא נוכח',overtimeLbl:'שעות נוספות',managerLbl:'מנהל',
+    otSessionOn:'שעות נוספות פעיל',otSessionOff:'התחל שעות נוספות',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
   }
 };
@@ -885,7 +888,7 @@ function openCDModal(locId){
         +'<div style="font-size:.76rem;color:'+(isOT?'#d97706':'#94a3b8')+'">'+fmt(elapsed)+(isOT?' ⚠️ '+t.overtimeLbl:'')+'</div>'
         +'</div>'
         +'<label style="display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;color:#d97706;flex-shrink:0;cursor:pointer">'
-        +'<input type="checkbox" id="cd-ot-'+w.id+'" style="width:16px;height:16px;accent-color:#f59e0b"'+(isOT?' checked':'')+'>'
+        +'<input type="checkbox" id="cd-ot-'+w.id+'" style="width:16px;height:16px;accent-color:#f59e0b"'+((isOT||w.overtime_active)?' checked':'')+'>'
         +' OT</label>'
         +'</div>');
     }
@@ -954,15 +957,21 @@ function renderList(){
     }
     var noteHtml=w.note?('<div style="font-size:.75rem;color:#64748b;margin-top:5px;font-style:italic;white-space:pre-wrap">📝 '+w.note+'</div>'):'';
     var forceHtml='';
+    var otBtnHtml='';
     if(w.working){
       forceHtml='<button class="forceout-btn" onclick="forceOut(\''+w.id+'\',\''+w.name+'\')">'+t.forceOut+'</button>';
+      var canOT=currentUser.is_admin||(currentUser.location_id&&currentUser.location_id===w.current_location_id);
+      if(canOT){
+        var otOn=!!w.overtime_active;
+        otBtnHtml='<button class="forceout-btn" style="background:'+(otOn?'#fef3c7;color:#d97706;border:1.5px solid #fde68a':'#f1f5f9;color:#64748b')+'" onclick="toggleOTSession(\''+w.id+'\')">⏱ '+(otOn?t.otSessionOn:t.otSessionOff)+'</button>';
+      }
     }
     html+=('<div class="'+cls+'">'
       +'<div class="av" style="background:'+clr(w.name)+'">'+ini(w.name)+'</div>'
       +'<div class="winfo"><div class="wname">'+w.name+'</div>'
       +'<div class="wsub">'+sub+'</div>'
       +timerHtml+noteHtml+'</div>'
-      +'<div class="wactions">'+forceHtml
+      +'<div class="wactions">'+forceHtml+otBtnHtml
       +'<button class="del-btn" style="color:#94a3b8;font-size:.9rem" onclick="openNoteModal(\''+w.id+'\')">📝</button>'
       +'<button class="del-btn" onclick="removeWorker(\''+w.id+'\',\''+w.name+'\')">✕</button>'
       +'</div></div>');
@@ -989,6 +998,12 @@ async function removeWorker(id,name){
 async function forceOut(id,name){
   if(!confirm(T[lang].forceOut+' '+name+'?')) return;
   await api('/api/workers/'+id+'/forceout',{method:'POST'}); toast(name+' ✓'); await load();
+}
+async function toggleOTSession(wid){
+  try{
+    await api('/api/workers/'+wid+'/overtime',{method:'POST',body:{}});
+    await load();
+  }catch(e){toast(T[lang].errServer);}
 }
 
 // ── Logs ──────────────────────────────────────────────────────────────────

@@ -70,6 +70,8 @@ def _migrate(db):
         db.execute('ALTER TABLE workers ADD COLUMN current_location_id TEXT')
     if 'note' not in wc:
         db.execute('ALTER TABLE workers ADD COLUMN note TEXT DEFAULT ""')
+    if 'overtime_active' not in wc:
+        db.execute('ALTER TABLE workers ADD COLUMN overtime_active INTEGER DEFAULT 0')
     lcc = cols('locations')
     if 'day_active' not in lcc:
         db.execute('ALTER TABLE locations ADD COLUMN day_active INTEGER DEFAULT 0')
@@ -424,16 +426,38 @@ def clock(wid):
                        (uid(), wid, w['name'], manager_name, now, location_id, location_name))
             return jsonify({'status': 'in'})
         else:
-            db.execute('UPDATE workers SET working=0, clock_start=NULL, current_location_id=NULL WHERE id=?', (wid,))
+            ot_approved = 1 if w['overtime_active'] else 0
+            db.execute('UPDATE workers SET working=0, clock_start=NULL, current_location_id=NULL, overtime_active=0 WHERE id=?', (wid,))
             log = db.execute(
                 'SELECT * FROM logs WHERE worker_id=? AND clock_out IS NULL ORDER BY clock_in DESC LIMIT 1',
                 (wid,)).fetchone()
             if log:
                 dur = now - log['clock_in']
                 overtime = 1 if dur > shift_ms else 0
-                db.execute('UPDATE logs SET clock_out=?, duration_ms=?, overtime=? WHERE id=?',
-                           (now, dur, overtime, log['id']))
+                db.execute('UPDATE logs SET clock_out=?, duration_ms=?, overtime=?, overtime_approved=? WHERE id=?',
+                           (now, dur, overtime, ot_approved, log['id']))
             return jsonify({'status': 'out'})
+
+@app.route('/api/workers/<wid>/overtime', methods=['POST', 'OPTIONS'])
+def toggle_overtime(wid):
+    if request.method == 'OPTIONS': return '', 200
+    s, err = require_auth(request)
+    if err: return err
+    with get_db() as db:
+        w = db.execute('SELECT * FROM workers WHERE id=?', (wid,)).fetchone()
+        if not w: return jsonify({'error': 'not found'}), 404
+        if not w['working']: return jsonify({'error': 'not_working'}), 400
+        loc_id = w['current_location_id']
+        # only the manager of this worker's location (or admin) may toggle
+        if not s['is_admin'] and s['location_id'] != loc_id:
+            return jsonify({'error': 'forbidden'}), 403
+        active = (request.json or {}).get('active')
+        if active is None:
+            active = not w['overtime_active']  # toggle
+        else:
+            active = bool(active)
+        db.execute('UPDATE workers SET overtime_active=? WHERE id=?', (1 if active else 0, wid))
+    return jsonify({'ok': True, 'overtime_active': active})
 
 @app.route('/api/workers/<wid>/note', methods=['POST', 'OPTIONS'])
 def save_worker_note(wid):
@@ -460,15 +484,16 @@ def force_clockout(wid):
         if not w or not w['working']: return jsonify({'ok': True})
         now = int(time.time() * 1000)
         shift_ms = float(get_setting('shift_hours') or 8) * 3600000
-        db.execute('UPDATE workers SET working=0, clock_start=NULL, current_location_id=NULL WHERE id=?', (wid,))
+        ot_approved = 1 if w['overtime_active'] else 0
+        db.execute('UPDATE workers SET working=0, clock_start=NULL, current_location_id=NULL, overtime_active=0 WHERE id=?', (wid,))
         log = db.execute(
             'SELECT * FROM logs WHERE worker_id=? AND clock_out IS NULL ORDER BY clock_in DESC LIMIT 1',
             (wid,)).fetchone()
         if log:
             dur = now - log['clock_in']
             overtime = 1 if dur > shift_ms else 0
-            db.execute('UPDATE logs SET clock_out=?, duration_ms=?, overtime=? WHERE id=?',
-                       (now, dur, overtime, log['id']))
+            db.execute('UPDATE logs SET clock_out=?, duration_ms=?, overtime=?, overtime_approved=? WHERE id=?',
+                       (now, dur, overtime, ot_approved, log['id']))
     return jsonify({'ok': True})
 
 # ── Day open/close ─────────────────────────────────────────────────────────
@@ -507,7 +532,7 @@ def day_close():
             if log:
                 dur = now - log['clock_in']
                 overtime = 1 if dur > shift_ms else 0
-                ot_approved = 1 if w['id'] in ot_approved_ids else 0
+                ot_approved = 1 if (w['id'] in ot_approved_ids or w['overtime_active']) else 0
                 db.execute('UPDATE logs SET clock_out=?, duration_ms=?, overtime=?, overtime_approved=? WHERE id=?',
                            (now, dur, overtime, ot_approved, log['id']))
     return jsonify({'ok': True})

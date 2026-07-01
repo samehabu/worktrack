@@ -1,0 +1,14 @@
+{
+  "name": "WorkTrack – Worker",
+  "short_name": "WorkTrack",
+  "description": "Clock in and out of your work shift",
+  "start_url": "/worker",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f2f5",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/icons/worker-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/worker-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

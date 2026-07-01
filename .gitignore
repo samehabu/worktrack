@@ -1,0 +1,13 @@
+data.db
+*.log
+*.pid
+__pycache__/
+*.pyc
+.env
+ngrok*
+LINKS.txt
+START.command
+STOP.command
+WorkTrack.app
+launcher.sh
+launchd.log

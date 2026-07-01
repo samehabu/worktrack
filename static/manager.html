@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="WT Manager"/>
+<meta name="theme-color" content="#4f46e5"/>
+<link rel="manifest" href="/manifest-manager.json"/>
+<link rel="apple-touch-icon" href="/icons/manager-180.png"/>
+<title>WorkTrack – Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1e293b;min-height:100svh}
+body.he,body.ar{font-family:'Segoe UI',Tahoma,system-ui,sans-serif}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+.lang-btns{display:flex;gap:6px}
+.lang-btn{padding:5px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.78rem;font-weight:700;background:#fff;color:#94a3b8;transition:all .15s}
+.lang-btn.active{border-color:#4f46e5;color:#4f46e5;background:#ede9fe}
+/* Login */
+#login-screen{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px;flex-direction:column;gap:16px}
+.login-card{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-logo{font-size:1.5rem;font-weight:900;color:#4f46e5;text-align:center;margin-bottom:4px}
+.login-sub{font-size:.88rem;color:#94a3b8;text-align:center;margin-bottom:24px}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:.78rem;font-weight:700;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+body.he .login-field label,body.ar .login-field label{text-transform:none;letter-spacing:0}
+.login-field input{width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:.96rem;outline:none;transition:border .15s}
+.login-field input:focus{border-color:#4f46e5}
+.login-btn{width:100%;padding:13px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;margin-top:8px}
+.login-btn:active{background:#4338ca}
+.login-err{font-size:.84rem;color:#ef4444;margin-top:8px;text-align:center;min-height:20px}
+.forgot-link{background:none;border:none;color:#94a3b8;font-size:.82rem;font-weight:600;margin-top:10px;display:block;width:100%;text-align:center;padding:4px}
+.forgot-panel{display:none}
+.forgot-panel.show{display:block}
+.back-link{background:none;border:none;color:#94a3b8;font-size:.82rem;font-weight:600;display:block;margin-bottom:12px;padding:0;text-align:start}
+.info-msg{font-size:.84rem;color:#64748b;margin-bottom:14px;line-height:1.5}
+.sec-field{width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;outline:none;margin-bottom:10px;transition:border .15s;background:#fff}
+.sec-field:focus{border-color:#4f46e5}
+.ok-msg{font-size:.84rem;font-weight:600;color:#16a34a;margin-top:8px;display:none}
+.err-msg2{font-size:.84rem;font-weight:600;color:#ef4444;margin-top:8px;display:none}
+/* App */
+#app{display:none}
+header{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 1px 3px rgba(0,0,0,.04);gap:10px;flex-wrap:wrap}
+.logo{font-size:1.2rem;font-weight:800;color:#4f46e5}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{font-size:.75rem;font-weight:700;background:#fef3c7;color:#d97706;padding:4px 12px;border-radius:999px}
+#clk{font-size:.82rem;color:#94a3b8;font-variant-numeric:tabular-nums}
+.logout-btn{font-size:.75rem;font-weight:700;padding:5px 12px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;color:#94a3b8}
+.main{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+/* Day card */
+.day-card{background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.day-lbl{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b}
+body.he .day-lbl,body.ar .day-lbl{text-transform:none;letter-spacing:0}
+.day-title{font-size:1.1rem;font-weight:800;margin-top:2px}
+.day-sub{font-size:.78rem;color:#94a3b8;margin-top:2px}
+.shift-row{display:flex;align-items:center;gap:8px;font-size:.8rem;color:#64748b;flex-wrap:wrap;margin-top:10px}
+.shift-row input[type=number]{width:52px;padding:4px 8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.85rem;text-align:center}
+.shift-save{padding:4px 12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:700}
+.day-btn{padding:9px 18px;border:none;border-radius:10px;font-size:.85rem;font-weight:700}
+.day-btn.open-btn{background:#4f46e5;color:#fff}
+.day-btn.close-btn{background:#fee2e2;color:#ef4444}
+/* Location */
+.loc-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.loc-tab{padding:7px 16px;border:1.5px solid #e2e8f0;border-radius:999px;font-size:.82rem;font-weight:700;background:#fff;color:#64748b}
+.loc-tab.active{background:#4f46e5;color:#fff;border-color:#4f46e5}
+.loc-banner{background:#ede9fe;border-radius:14px;padding:12px 16px;font-size:.88rem;font-weight:700;color:#4f46e5;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:#fff;border-radius:14px;padding:14px 12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat .num{font-size:1.5rem;font-weight:800;color:#4f46e5}
+.stat .lbl{font-size:.72rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+body.he .stat .lbl,body.ar .stat .lbl{text-transform:none;letter-spacing:0;font-size:.75rem}
+/* Cards / Add row */
+.card{background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px}
+body.he .card-label,body.ar .card-label{text-transform:none;letter-spacing:0}
+.add-row{display:flex;gap:8px;flex-wrap:wrap}
+.add-row input,.add-row select{flex:1;min-width:120px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;outline:none;transition:border .15s;background:#fff}
+.add-row input:focus,.add-row select:focus{border-color:#4f46e5}
+.btn-add{padding:10px 18px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;white-space:nowrap}
+.sec-lbl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:0 2px;margin-bottom:10px}
+body.he .sec-lbl,body.ar .sec-lbl{text-transform:none;letter-spacing:0}
+/* Worker cards */
+.wcard{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;gap:12px}
+.wcard.on{border-inline-start:4px solid #22c55e}
+.wcard.overtime{border-inline-start:4px solid #f59e0b}
+.av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.88rem;flex-shrink:0}
+.winfo{flex:1;min-width:0}
+.wname{font-weight:700;font-size:.96rem}
+.wsub{font-size:.78rem;color:#94a3b8;margin-top:2px}
+.wtimer{font-size:.82rem;font-weight:700;color:#22c55e;font-variant-numeric:tabular-nums}
+.wtimer.ot{color:#f59e0b}
+.wactions{display:flex;gap:6px;flex-shrink:0;align-items:center}
+.forceout-btn{padding:5px 11px;background:#fee2e2;color:#ef4444;border:none;border-radius:8px;font-size:.78rem;font-weight:700}
+.del-btn{background:none;border:none;color:#cbd5e1;font-size:1.1rem;padding:4px 8px}
+.del-btn:hover{color:#ef4444}
+.empty{text-align:center;padding:32px;color:#cbd5e1}
+.empty-icon{font-size:2.5rem;margin-bottom:8px}
+/* Panel buttons */
+.panel-btn{width:100%;padding:13px 18px;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;font-size:.92rem;font-weight:700;color:#64748b;text-align:start;margin-bottom:10px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.collapsible{display:none;background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.collapsible.open{display:block}
+/* Logs */
+.log-row{padding:12px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;gap:10px}
+.log-row:last-child{border-bottom:none}
+.log-row.ot-row{background:#fffbeb;border-radius:8px;padding:10px 8px;margin-bottom:4px}
+.log-name{font-weight:700;font-size:.92rem;margin-bottom:2px}
+.log-detail{font-size:.78rem;color:#64748b;margin-top:2px;line-height:1.5}
+.ot-badge{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:999px;margin-inline-start:6px}
+.ot-pend{background:#fef3c7;color:#d97706}
+.ot-ok{background:#dcfce7;color:#16a34a}
+.approve-btn{padding:3px 10px;background:#dcfce7;color:#16a34a;border:none;border-radius:8px;font-size:.74rem;font-weight:700;margin-top:4px;margin-inline-end:4px}
+.edit-btn{padding:3px 10px;background:#ede9fe;color:#4f46e5;border:none;border-radius:8px;font-size:.74rem;font-weight:700;margin-top:4px}
+/* Report */
+.rep-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.rep-ttl{font-size:.88rem;font-weight:700;color:#64748b;flex:1}
+.rep-top select{padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem}
+.rep-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9}
+.rep-row:last-child{border-bottom:none}
+.rn{font-weight:700;font-size:.9rem}
+.rm2{font-size:.76rem;color:#94a3b8;margin-top:2px}
+.rh{font-size:.96rem;font-weight:800;color:#4f46e5;white-space:nowrap}
+/* Manager list */
+.mgr-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.mgr-row:last-child{border-bottom:none}
+.mgr-name{flex:1;font-weight:700;font-size:.9rem}
+.mgr-role{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:999px;background:#f1f5f9;color:#64748b}
+.mgr-role.admin{background:#fef3c7;color:#d97706}
+.loc-sel{flex:1;min-width:110px;padding:6px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:.82rem;background:#f8fafc;color:#334155}
+.loc-sel:focus{border-color:#4f46e5;outline:none}
+/* Security */
+.sec-msg{font-size:.82rem;font-weight:600;margin-top:8px;min-height:18px}
+.sec-msg.ok{color:#16a34a}
+.sec-msg.err{color:#ef4444}
+/* Error box */
+.err-box{background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:14px;font-size:.86rem;color:#be123c;margin-bottom:14px;display:none;line-height:1.5}
+.err-box.show{display:block}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:1.05rem;font-weight:800;margin-bottom:18px}
+.modal-field{margin-bottom:14px}
+.modal-field label{display:block;font-size:.76rem;font-weight:700;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter-spacing:0}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;outline:none;transition:border .15s}
+.modal-field input:focus,.modal-field select:focus{border-color:#4f46e5}
+.modal-field textarea{min-height:72px;resize:vertical}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.btn-cancel{flex:1;padding:11px;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-size:.9rem;font-weight:700}
+.btn-save{flex:2;padding:11px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700}
+.ot-section{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px;margin-bottom:14px}
+.ot-section-title{font-size:.82rem;font-weight:700;color:#d97706;margin-bottom:10px}
+/* Toast */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a2e;color:#fff;padding:11px 26px;border-radius:999px;font-size:.9rem;font-weight:600;opacity:0;transition:all .2s;pointer-events:none;z-index:300;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="lang-btns">
+    <button class="lang-btn" onclick="setLang('he')">עב</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('ar')">ع</button>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">WorkTrack</div>
+    <div class="login-sub" id="login-sub">Manager Login</div>
+    <div id="login-form">
+      <div class="login-field">
+        <label id="lbl-user">Username</label>
+        <input type="text" id="inp-user" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('inp-pass').focus()"/>
+      </div>
+      <div class="login-field">
+        <label id="lbl-pass">Password</label>
+        <input type="password" id="inp-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Login</button>
+      <div class="login-err" id="login-err"></div>
+      <button class="forgot-link" id="forgot-link" onclick="showForgot()">Forgot password?</button>
+    </div>
+    <div class="forgot-panel" id="forgot-panel">
+      <button class="back-link" id="back-link" onclick="showLogin()">← Back</button>
+      <div class="info-msg" id="forgot-info">Enter your username and registered phone number.</div>
+      <input class="sec-field" type="text" id="fp-user" autocomplete="off"/>
+      <input class="sec-field" type="tel" id="fp-phone"/>
+      <button class="login-btn" id="fp-btn" onclick="doForgot()">Send</button>
+      <div class="ok-msg" id="fp-ok"></div>
+      <div class="err-msg2" id="fp-err"></div>
+      <div id="fp-temp-block" style="display:none;margin-top:16px">
+        <div class="info-msg" id="fp-temp-info">Enter the temp password then set a new one.</div>
+        <input class="sec-field" type="text" id="fp-temp"/>
+        <input class="sec-field" type="password" id="fp-newpw"/>
+        <button class="login-btn" id="fp-reset-btn" onclick="doReset()">Set new password</button>
+        <div class="err-msg2" id="fp-reset-err"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="logo">WorkTrack</div>
+    <div class="header-right">
+      <div class="lang-btns">
+        <button class="lang-btn" onclick="setLang('he')">עב</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('ar')">ع</button>
+      </div>
+      <span class="badge" id="badge"></span>
+      <div id="clk"></div>
+      <button class="logout-btn" id="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+  <div class="main">
+    <div class="err-box" id="err-box"></div>
+    <!-- Day card -->
+    <div class="day-card" id="day-card">
+      <div>
+        <div class="day-lbl" id="day-lbl">Status</div>
+        <div class="day-title" id="day-title">—</div>
+        <div class="day-sub" id="day-sub"></div>
+        <div class="shift-row">
+          <span id="lbl-shift">Shift:</span>
+          <input type="number" id="shift-input" value="8" min="1" max="24" step="0.5"/>
+          <span id="lbl-hrs">hrs</span>
+          <button class="shift-save" id="shift-save" onclick="saveShift()">Save</button>
+        </div>
+      </div>
+      <button class="day-btn" id="day-btn" onclick="toggleDay()">—</button>
+    </div>
+    <!-- Location tabs/banner -->
+    <div class="loc-tabs" id="loc-tabs" style="display:none"></div>
+    <div class="loc-banner" id="loc-banner" style="display:none">📍 <span id="loc-banner-name"></span></div>
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat"><div class="num" id="st-total">0</div><div class="lbl" id="lbl-workers">Workers</div></div>
+      <div class="stat"><div class="num" id="st-on">0</div><div class="lbl" id="lbl-working">On shift</div></div>
+      <div class="stat"><div class="num" id="st-month">0h</div><div class="lbl" id="lbl-month">This month</div></div>
+    </div>
+    <!-- Add worker -->
+    <div class="card">
+      <div class="card-label" id="lbl-add">Add Worker</div>
+      <div class="add-row">
+        <input type="text" id="iname" autocomplete="off"/>
+        <button class="btn-add" id="add-btn" onclick="addWorker()">+ <span id="lbl-add-btn">Add</span></button>
+      </div>
+    </div>
+    <!-- Worker list -->
+    <div class="sec-lbl" id="lbl-all">All Workers</div>
+    <div id="worker-list"></div>
+    <!-- Logs panel -->
+    <button class="panel-btn" onclick="toggleLogs()">📋 <span id="lbl-logs">Logs</span></button>
+    <div class="collapsible" id="logs-panel">
+      <div id="logs-body"></div>
+    </div>
+    <!-- Report panel -->
+    <button class="panel-btn" onclick="toggleReport()">📊 <span id="lbl-report">Monthly Report</span></button>
+    <div class="collapsible" id="rep-panel">
+      <div class="rep-top">
+        <div class="rep-ttl" id="lbl-hours">Hours by Worker</div>
+        <select id="rmon"></select>
+        <select id="ryear"></select>
+      </div>
+      <div id="rep-body"></div>
+    </div>
+    <!-- Locations (admin only) -->
+    <div id="loc-wrap" style="display:none">
+      <button class="panel-btn" onclick="toggleLocPanel()">📍 <span id="lbl-locations">Locations</span></button>
+      <div class="collapsible" id="loc-panel">
+        <div class="card-label" id="lbl-add-loc">Add Location</div>
+        <div class="add-row" style="margin-bottom:16px">
+          <input type="text" id="new-loc-name" autocomplete="off"/>
+          <button class="btn-add" onclick="addLocation()"><span id="lbl-add-loc-btn">Add</span></button>
+        </div>
+        <div id="loc-list"></div>
+        <div style="margin-top:20px">
+          <div class="card-label" id="lbl-swap-loc">Swap Locations</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <select id="swap-sel1" style="padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;background:#fff"></select>
+            <select id="swap-sel2" style="padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;background:#fff"></select>
+            <button class="btn-add" style="width:100%" onclick="swapLocations()"><span id="lbl-swap-btn">Swap</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Manager accounts (admin only) -->
+    <div id="mgr-wrap" style="display:none">
+      <button class="panel-btn" onclick="toggleAccounts()">👥 <span id="lbl-accounts">Manager Accounts</span></button>
+      <div class="collapsible" id="accounts-panel">
+        <div class="card-label" id="lbl-add-mgr">Add Manager</div>
+        <div class="add-row" style="margin-bottom:12px">
+          <input type="text" id="new-mgr-user" autocomplete="off"/>
+          <input type="password" id="new-mgr-pass" autocomplete="off"/>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:#64748b;flex-shrink:0">
+            <input type="checkbox" id="new-mgr-admin" style="width:16px;height:16px;accent-color:#f59e0b"/>
+            <span id="lbl-admin-chk">Admin</span>
+          </label>
+          <button class="btn-add" onclick="addManager()"><span id="lbl-add-mgr-btn">Add</span></button>
+        </div>
+        <div id="mgr-list"></div>
+      </div>
+    </div>
+    <!-- AI Reports (admin only) -->
+    <div id="ai-rep-wrap" style="display:none">
+      <button class="panel-btn" onclick="toggleAIReports()">🤖 <span id="lbl-ai-reports">AI Monthly Reports</span></button>
+      <div class="collapsible" id="ai-rep-panel">
+        <div class="card-label" id="lbl-apikey">Anthropic API Key</div>
+        <div class="add-row" style="margin-bottom:16px">
+          <input type="password" id="api-key-inp" autocomplete="off" style="flex:1;min-width:120px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;outline:none"/>
+          <button class="btn-add" onclick="saveApiKey()"><span id="lbl-apikey-btn">Save</span></button>
+        </div>
+        <div class="rep-top" style="margin-bottom:12px">
+          <select id="ai-rep-lang" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem">
+            <option value="he">עברית</option>
+            <option value="en">English</option>
+            <option value="ar">العربية</option>
+          </select>
+          <select id="ai-rep-mon" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem"></select>
+          <select id="ai-rep-yr" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem"></select>
+          <button class="btn-add" id="gen-btn" onclick="generateAIReports()"><span id="lbl-gen-btn">Generate</span></button>
+        </div>
+        <div id="ai-rep-list"></div>
+      </div>
+    </div>
+    <!-- My Account -->
+    <button class="panel-btn" onclick="toggleSecurity()">🔐 <span id="lbl-security">My Account</span></button>
+    <div class="collapsible" id="sec-panel">
+      <div class="card-label" id="lbl-chpw">Change Password</div>
+      <input class="sec-field" type="password" id="sec-cur" autocomplete="current-password"/>
+      <input class="sec-field" type="password" id="sec-new" autocomplete="new-password"/>
+      <input class="sec-field" type="password" id="sec-new2" autocomplete="new-password"/>
+      <button class="btn-add" style="width:100%;margin-bottom:16px" onclick="changePassword()"><span id="lbl-chpw-btn">Change Password</span></button>
+      <div class="sec-msg" id="pw-msg"></div>
+      <div class="card-label" id="lbl-phone">Recovery Phone</div>
+      <div class="add-row">
+        <input class="sec-field" type="tel" id="sec-phone" style="margin-bottom:0"/>
+        <button class="btn-add" onclick="savePhone()"><span id="lbl-save-phone">Save</span></button>
+      </div>
+      <div class="sec-msg" id="phone-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Edit Session</div>
+    <div class="modal-field">
+      <label id="modal-lbl-worker">Worker</label>
+      <select id="modal-worker"></select>
+    </div>
+    <div class="modal-field">
+      <label id="modal-lbl-mgr">Manager</label>
+      <input type="text" id="modal-mgr"/>
+    </div>
+    <div class="modal-field">
+      <label id="modal-lbl-in">Clock In</label>
+      <input type="datetime-local" id="modal-in"/>
+    </div>
+    <div class="modal-field">
+      <label id="modal-lbl-out">Clock Out</label>
+      <input type="datetime-local" id="modal-out"/>
+    </div>
+    <div class="modal-field">
+      <label id="modal-lbl-loc">Location</label>
+      <select id="modal-loc"></select>
+    </div>
+    <div class="ot-section" id="ot-section" style="display:none">
+      <div class="ot-section-title" id="ot-section-title">Overtime</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:600;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="ot-approved" style="width:16px;height:16px;accent-color:#16a34a"/>
+        <span id="lbl-approve-ot">Approve overtime</span>
+      </label>
+      <div class="modal-field" style="margin-bottom:0">
+        <label id="lbl-ot-note">Note / Reason</label>
+        <textarea id="ot-note"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="modal-save" onclick="saveLog()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT VIEW MODAL -->
+<div class="modal-overlay" id="report-modal">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-title" id="report-modal-title"></div>
+    <div id="report-modal-body" style="font-size:.9rem;line-height:1.7;color:#334155;white-space:pre-wrap;max-height:60vh;overflow-y:auto;padding:4px 0"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="g('report-modal').classList.remove('open')">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSE DAY MODAL -->
+<div class="modal-overlay" id="close-day-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="cd-title">Close Work Day</div>
+    <div style="font-size:.84rem;color:#64748b;margin-bottom:16px" id="cd-sub"></div>
+    <div id="cd-list"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cd-cancel" onclick="closeCDModal()">Cancel</button>
+      <button class="btn-save" id="cd-confirm" style="background:#ef4444" onclick="confirmCloseDay()">Close Day</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="note-modal">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-title" id="note-modal-title"></div>
+    <div class="modal-field">
+      <textarea id="note-ta" style="width:100%;min-height:100px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;resize:vertical;outline:none;font-family:inherit"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="note-cancel" onclick="closeNoteModal()">Cancel</button>
+      <button class="btn-save" id="note-save" onclick="saveWorkerNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+window.onerror = function(msg,src,line){
+  var b=document.createElement('div');
+  b.style='position:fixed;top:0;left:0;right:0;background:#dc2626;color:#fff;padding:10px 14px;font-size:13px;z-index:9999;font-family:monospace;word-break:break-all';
+  b.textContent='JS ERROR line '+line+': '+msg;
+  document.body.appendChild(b);
+};
+</script>
+<script>
+// ── Translations ───────────────────────────────────────────────────────────
+var T = {
+  en:{
+    loginSub:'Manager Login',userLbl:'Username',passLbl:'Password',loginBtn:'Login',
+    forgotLink:'Forgot password?',forgotInfo:'Enter your username and registered phone number.',
+    fpUserPh:'Username',fpPhonePh:'+1234567890',fpSendBtn:'Send',
+    fpTempInfo:'Enter the temp password then set a new one.',fpTempPh:'Temp password',
+    fpNewPh:'New password (min 4 chars)',fpResetBtn:'Set new password',
+    backLink:'← Back',errWrongCreds:'Wrong username or password.',errServer:'Cannot reach server.',
+    forgotSent:'Temp password sent to your phone!',forgotShown:'SMS unavailable. Your temp password:',
+    errNoPhone:'No phone number on this account.',errWrongPhone:'Phone number does not match.',
+    errInvalidTemp:'Temp password is invalid or expired.',
+    logout:'Logout',shiftLbl:'Shift:',hrsLbl:'hrs',saveShift:'Save',
+    dayClosedLbl:'Day Status',dayClosed:'Day Closed',dayOpen:'Day Open',
+    dayClosedSub:'Work day is not active',dayOpenSub:'Workers can clock in',
+    openDay:'Open Day',closeDay:'Close Day',confirmClose:'Close the work day? All active workers will be clocked out.',
+    workers:'Workers',working:'On Shift',thisMonth:'This Month',
+    addWorker:'Add Worker',workerPh:'Worker name',mgrPh:'Manager name',addBtn:'Add',
+    allWorkers:'All Workers',noWorkers:'No workers yet — add one above.',
+    forceOut:'End Shift',confirmRemove:'Remove',
+    logs:'Logs',noLogs:'No shifts yet.',
+    report:'Monthly Report',hoursByWorker:'Hours by Worker',noReport:'No completed shifts in',
+    sessions:'shifts',session:'shift',overtimeSessions:'overtime',
+    locations:'Locations',addLoc:'Add Location',locNamePh:'Location name',addLocBtn:'Add',
+    swapLoc:'Swap Locations Between Managers',swapBtn:'Swap',
+    swapped:'Locations swapped ✓',swapSameErr:'Select two different locations.',
+    locAdded:'Location added ✓',locRemoved:'Location removed',confirmRemoveLoc:'Remove location',
+    allSites:'All Sites',yourSite:'Your Site',noLocation:'No location',
+    accounts:'Manager Accounts',addMgr:'Add Manager',mgrUserPh:'Username',mgrPassPh:'Password',
+    adminChk:'Admin',addMgrBtn:'Add',mgrAdded:'Manager added ✓',mgrRemoved:'Manager removed',
+    confirmRemoveMgr:'Remove manager',errUserTaken:'Username already taken.',
+    myAccount:'My Account',changePw:'Change Password',curPwPh:'Current password',
+    newPwPh:'New password',confirmPwPh:'Confirm new password',chPwBtn:'Change Password',
+    pwChanged:'Password changed ✓',errWrongCur:'Current password is wrong.',
+    errMismatch:'Passwords do not match.',errTooShort:'Password must be at least 4 chars.',
+    recoveryPhone:'Recovery Phone',savePhone:'Save',phoneSaved:'Phone saved ✓',
+    editSession:'Edit Session',workerLbl:'Worker',mgrLbl2:'Manager',clockIn:'Clock In',
+    clockOut:'Clock Out',locationLbl:'Location',overtimeSection:'⚠️ Overtime',
+    approveOT:'Approve overtime',otNote:'Note / Reason',cancelBtn:'Cancel',saveBtn:'Save Changes',
+    saved:'Saved ✓',removed:'Removed',added:'Added ✓',
+    closeDayTitle:'Close Work Day',closeDaySub:'Select workers who worked overtime today',
+    closeDayBtn:'Close Work Day',noActiveWorkers:'No workers currently active',
+    noteTitle:'Worker Note',notePh:'Add a note about this worker...',noteBtn:'Save Note',
+    aiReports:'AI Monthly Reports',generateReports:'Generate Reports',
+    generating:'Generating…',reportFor:'Report for',apiKeyLbl:'Anthropic API Key',
+    apiKeySaved:'API key saved ✓',noReports:'No reports yet. Generate one above.',
+    reportLang:'Report Language',viewReport:'View',deleteReport:'Delete',
+    errNeedIn:'Clock-in time required.',errOrder:'Clock-out must be after clock-in.',
+    workingLbl:'Working',offLbl:'Off',overtimeLbl:'Overtime',managerLbl:'Manager',
+    MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
+  },
+  ar:{
+    loginSub:'تسجيل دخول المدير',userLbl:'اسم المستخدم',passLbl:'كلمة المرور',loginBtn:'دخول',
+    forgotLink:'نسيت كلمة المرور؟',forgotInfo:'أدخل اسم المستخدم ورقم الهاتف المسجل.',
+    fpUserPh:'اسم المستخدم',fpPhonePh:'+1234567890',fpSendBtn:'إرسال',
+    fpTempInfo:'أدخل كلمة المرور المؤقتة ثم أنشئ كلمة مرور جديدة.',fpTempPh:'كلمة المرور المؤقتة',
+    fpNewPh:'كلمة مرور جديدة (4 أحرف على الأقل)',fpResetBtn:'تعيين كلمة مرور جديدة',
+    backLink:'→ رجوع',errWrongCreds:'اسم المستخدم أو كلمة المرور غير صحيحة.',errServer:'تعذر الوصول إلى الخادم.',
+    forgotSent:'تم إرسال كلمة مرور مؤقتة إلى هاتفك!',forgotShown:'الرسائل غير متاحة. كلمة المرور المؤقتة:',
+    errNoPhone:'لا يوجد رقم هاتف مسجل لهذا الحساب.',errWrongPhone:'رقم الهاتف غير متطابق.',
+    errInvalidTemp:'كلمة المرور المؤقتة غير صالحة أو منتهية الصلاحية.',
+    logout:'خروج',shiftLbl:'المناوبة:',hrsLbl:'ساعات',saveShift:'حفظ',
+    dayClosedLbl:'حالة اليوم',dayClosed:'اليوم مغلق',dayOpen:'اليوم مفتوح',
+    dayClosedSub:'يوم العمل غير نشط',dayOpenSub:'يمكن للعمال تسجيل الدخول',
+    openDay:'فتح يوم العمل',closeDay:'إغلاق يوم العمل',confirmClose:'إغلاق يوم العمل؟ سيتم إخراج جميع العمال.',
+    workers:'العمال',working:'في المناوبة',thisMonth:'هذا الشهر',
+    addWorker:'إضافة عامل',workerPh:'اسم العامل',mgrPh:'اسم المدير',addBtn:'إضافة',
+    allWorkers:'جميع العمال',noWorkers:'لا يوجد عمال بعد.',
+    forceOut:'إنهاء المناوبة',confirmRemove:'حذف',
+    logs:'السجلات',noLogs:'لا توجد مناوبات بعد.',
+    report:'التقرير الشهري',hoursByWorker:'الساعات حسب العامل',noReport:'لا توجد مناوبات مكتملة في',
+    sessions:'مناوبات',session:'مناوبة',overtimeSessions:'إضافية',
+    locations:'المواقع',addLoc:'إضافة موقع',locNamePh:'اسم الموقع',addLocBtn:'إضافة',
+    swapLoc:'تبديل المواقع بين المديرين',swapBtn:'تبديل',
+    swapped:'تم تبديل المواقع ✓',swapSameErr:'اختر موقعين مختلفين.',
+    locAdded:'تمت إضافة الموقع ✓',locRemoved:'تمت إزالة الموقع',confirmRemoveLoc:'إزالة الموقع',
+    allSites:'جميع المواقع',yourSite:'موقعك',noLocation:'لا يوجد موقع',
+    accounts:'حسابات المديرين',addMgr:'إضافة مدير',mgrUserPh:'اسم المستخدم',mgrPassPh:'كلمة المرور',
+    adminChk:'مدير عام',addMgrBtn:'إضافة',mgrAdded:'تمت إضافة المدير ✓',mgrRemoved:'تمت إزالة المدير',
+    confirmRemoveMgr:'إزالة مدير',errUserTaken:'اسم المستخدم مستخدم بالفعل.',
+    myAccount:'حسابي',changePw:'تغيير كلمة المرور',curPwPh:'كلمة المرور الحالية',
+    newPwPh:'كلمة مرور جديدة',confirmPwPh:'تأكيد كلمة المرور الجديدة',chPwBtn:'تغيير كلمة المرور',
+    pwChanged:'تم تغيير كلمة المرور ✓',errWrongCur:'كلمة المرور الحالية غير صحيحة.',
+    errMismatch:'كلمات المرور غير متطابقة.',errTooShort:'يجب أن تحتوي كلمة المرور على 4 أحرف على الأقل.',
+    recoveryPhone:'هاتف الاسترداد',savePhone:'حفظ',phoneSaved:'تم حفظ الهاتف ✓',
+    editSession:'تعديل المناوبة',workerLbl:'العامل',mgrLbl2:'المدير',clockIn:'وقت الدخول',
+    clockOut:'وقت الخروج',locationLbl:'الموقع',overtimeSection:'⚠️ وقت إضافي',
+    approveOT:'الموافقة على الوقت الإضافي',otNote:'ملاحظة / سبب',cancelBtn:'إلغاء',saveBtn:'حفظ التغييرات',
+    saved:'تم الحفظ ✓',removed:'تم الحذف',added:'تمت الإضافة ✓',
+    closeDayTitle:'إغلاق يوم العمل',closeDaySub:'اختر العمال الذين عملوا وقتاً إضافياً اليوم',
+    closeDayBtn:'إغلاق يوم العمل',noActiveWorkers:'لا يوجد عمال نشطون حالياً',
+    noteTitle:'ملاحظة عن العامل',notePh:'أضف ملاحظة عن هذا العامل...',noteBtn:'حفظ الملاحظة',
+    aiReports:'تقارير شهرية بالذكاء الاصطناعي',generateReports:'توليد التقارير',
+    generating:'جارٍ التوليد…',reportFor:'تقرير لـ',apiKeyLbl:'مفتاح Anthropic API',
+    apiKeySaved:'تم حفظ المفتاح ✓',noReports:'لا توجد تقارير بعد.',
+    reportLang:'لغة التقرير',viewReport:'عرض',deleteReport:'حذف',
+    errNeedIn:'وقت الدخول مطلوب.',errOrder:'يجب أن يكون وقت الخروج بعد الدخول.',
+    workingLbl:'يعمل',offLbl:'غائب',overtimeLbl:'وقت إضافي',managerLbl:'المدير',
+    MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+  },
+  he:{
+    loginSub:'כניסת מנהל',userLbl:'שם משתמש',passLbl:'סיסמה',loginBtn:'כניסה',
+    forgotLink:'שכחת סיסמה?',forgotInfo:'הזן שם משתמש ומספר טלפון רשום.',
+    fpUserPh:'שם משתמש',fpPhonePh:'+972...',fpSendBtn:'שלח',
+    fpTempInfo:'הזן את הסיסמה הזמנית ולאחר מכן הגדר סיסמה חדשה.',fpTempPh:'סיסמה זמנית',
+    fpNewPh:'סיסמה חדשה (לפחות 4 תווים)',fpResetBtn:'הגדר סיסמה חדשה',
+    backLink:'→ חזרה',errWrongCreds:'שם משתמש או סיסמה שגויים.',errServer:'לא ניתן להגיע לשרת.',
+    forgotSent:'סיסמה זמנית נשלחה לטלפון שלך!',forgotShown:'SMS לא זמין. הסיסמה הזמנית שלך:',
+    errNoPhone:'לא נרשם מספר טלפון לחשבון זה.',errWrongPhone:'מספר הטלפון אינו תואם.',
+    errInvalidTemp:'הסיסמה הזמנית אינה תקפה או פגה תוקפה.',
+    logout:'יציאה',shiftLbl:'משמרת:',hrsLbl:'שעות',saveShift:'שמור',
+    dayClosedLbl:'סטטוס יום',dayClosed:'היום סגור',dayOpen:'היום פתוח',
+    dayClosedSub:'יום העבודה לא פעיל',dayOpenSub:'העובדים יכולים לרשום נוכחות',
+    openDay:'פתח יום עבודה',closeDay:'סגור יום עבודה',confirmClose:'לסגור את יום העבודה? כל העובדים הפעילים יצאו.',
+    workers:'עובדים',working:'במשמרת',thisMonth:'החודש',
+    addWorker:'הוסף עובד',workerPh:'שם עובד',mgrPh:'שם מנהל',addBtn:'הוסף',
+    allWorkers:'כל העובדים',noWorkers:'אין עובדים עדיין — הוסף אחד למעלה.',
+    forceOut:'סיים משמרת',confirmRemove:'הסר',
+    logs:'יומן משמרות',noLogs:'אין משמרות עדיין.',
+    report:'דוח חודשי',hoursByWorker:'שעות לפי עובד',noReport:'אין משמרות שהושלמו ב',
+    sessions:'משמרות',session:'משמרת',overtimeSessions:'נוספות',
+    locations:'מיקומים',addLoc:'הוסף מיקום',locNamePh:'שם מיקום',addLocBtn:'הוסף',
+    swapLoc:'החלף מיקומים בין מנהלים',swapBtn:'החלף',
+    swapped:'המיקומים הוחלפו ✓',swapSameErr:'בחר שני מיקומים שונים.',
+    locAdded:'מיקום נוסף ✓',locRemoved:'מיקום הוסר',confirmRemoveLoc:'הסר מיקום',
+    allSites:'כל האתרים',yourSite:'האתר שלך',noLocation:'ללא מיקום',
+    accounts:'חשבונות מנהלים',addMgr:'הוסף מנהל',mgrUserPh:'שם משתמש',mgrPassPh:'סיסמה',
+    adminChk:'מנהל על',addMgrBtn:'הוסף',mgrAdded:'מנהל נוסף ✓',mgrRemoved:'מנהל הוסר',
+    confirmRemoveMgr:'הסר מנהל',errUserTaken:'שם המשתמש כבר קיים.',
+    myAccount:'החשבון שלי',changePw:'שינוי סיסמה',curPwPh:'סיסמה נוכחית',
+    newPwPh:'סיסמה חדשה',confirmPwPh:'אשר סיסמה חדשה',chPwBtn:'שנה סיסמה',
+    pwChanged:'הסיסמה שונתה ✓',errWrongCur:'הסיסמה הנוכחית שגויה.',
+    errMismatch:'הסיסמאות אינן תואמות.',errTooShort:'הסיסמה חייבת להכיל לפחות 4 תווים.',
+    recoveryPhone:'טלפון לשחזור',savePhone:'שמור',phoneSaved:'הטלפון נשמר ✓',
+    editSession:'עריכת משמרת',workerLbl:'עובד',mgrLbl2:'מנהל',clockIn:'שעת כניסה',
+    clockOut:'שעת יציאה',locationLbl:'מיקום',overtimeSection:'⚠️ שעות נוספות',
+    approveOT:'אישור שעות נוספות',otNote:'הערה / סיבה',cancelBtn:'ביטול',saveBtn:'שמור שינויים',
+    saved:'נשמר ✓',removed:'נמחק',added:'נוסף ✓',
+    closeDayTitle:'סגור יום עבודה',closeDaySub:'בחר עובדים שעבדו שעות נוספות היום',
+    closeDayBtn:'סגור יום עבודה',noActiveWorkers:'אין עובדים פעילים כרגע',
+    noteTitle:'הערה על עובד',notePh:'הוסף הערה על עובד זה...',noteBtn:'שמור הערה',
+    aiReports:'דוחות חודשיים עם AI',generateReports:'צור דוחות',
+    generating:'מייצר…',reportFor:'דוח עבור',apiKeyLbl:'מפתח Anthropic API',
+    apiKeySaved:'המפתח נשמר ✓',noReports:'אין דוחות עדיין.',
+    reportLang:'שפת הדוח',viewReport:'הצג',deleteReport:'מחק',
+    errNeedIn:'שעת כניסה נדרשת.',errOrder:'שעת יציאה חייבת להיות אחרי הכניסה.',
+    workingLbl:'עובד',offLbl:'לא נוכח',overtimeLbl:'שעות נוספות',managerLbl:'מנהל',
+    MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+  }
+};
+
+// ── State ─────────────────────────────────────────────────────────────────
+var lang = localStorage.getItem('wt_lang') || 'he';
+var token = localStorage.getItem('wt_token') || '';
+var currentUser = JSON.parse(localStorage.getItem('wt_user') || 'null');
+var workers = [], allLogs = [], locations = [], managers = [];
+var dayActive = false, shiftMs = 8*3600000;
+var logsOpen = false, repOpen = false, repInit = false;
+var secOpen = false, accsOpen = false, locPanelOpen = false;
+var activeLocId = null;
+var editingLogId = null;
+var failCount = 0;
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+var COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#0ea5e9','#ef4444','#14b8a6'];
+function clr(n){var h=0;for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))|0;return COLORS[Math.abs(h)%COLORS.length]}
+function ini(n){return n.trim().split(/\s+/).map(function(s){return s[0]}).join('').toUpperCase().slice(0,2)}
+function fmt(ms){if(!ms||ms<0)ms=0;return Math.floor(ms/3600000)+'h '+Math.floor(ms%3600000/60000)+'m'}
+function fmtDT(ms){if(!ms)return'—';var d=new Date(ms);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function tsToLocal(ms){if(!ms)return'';var d=new Date(ms),pad=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
+function localToTs(s){return s?new Date(s).getTime():null}
+var _t;
+function toast(m){var e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(_t);_t=setTimeout(function(){e.classList.remove('show')},2400)}
+function showErr(m){var e=document.getElementById('err-box');e.textContent=m;e.classList.add('show')}
+function hideErr(){document.getElementById('err-box').classList.remove('show')}
+function api(url,opts){
+  opts=opts||{};
+  opts.headers=Object.assign({},opts.headers||{},{'X-Token':token});
+  if(opts.body&&typeof opts.body==='object'){
+    opts.headers['Content-Type']='application/json';
+    opts.body=JSON.stringify(opts.body);
+  }
+  return fetch(url,opts);
+}
+function g(id){return document.getElementById(id)}
+
+// ── Language ──────────────────────────────────────────────────────────────
+function setLang(l){
+  lang=l; localStorage.setItem('wt_lang',l);
+  var rtl=l==='ar'||l==='he';
+  document.documentElement.lang=l;
+  document.documentElement.dir=rtl?'rtl':'ltr';
+  document.body.className=rtl?l:'';
+  document.querySelectorAll('.lang-btn').forEach(function(b){
+    b.classList.toggle('active', b.textContent===(l==='en'?'EN':l==='ar'?'ع':'עב'));
+  });
+  applyLang();
+}
+function applyLang(){
+  var t=T[lang];
+  // Login screen
+  g('login-sub').textContent=t.loginSub;
+  g('lbl-user').textContent=t.userLbl;
+  g('lbl-pass').textContent=t.passLbl;
+  g('login-btn').textContent=t.loginBtn;
+  g('forgot-link').textContent=t.forgotLink;
+  g('forgot-info').textContent=t.forgotInfo;
+  g('fp-user').placeholder=t.fpUserPh;
+  g('fp-phone').placeholder=t.fpPhonePh;
+  g('fp-btn').textContent=t.fpSendBtn;
+  g('fp-temp-info').textContent=t.fpTempInfo;
+  g('fp-temp').placeholder=t.fpTempPh;
+  g('fp-newpw').placeholder=t.fpNewPh;
+  g('fp-reset-btn').textContent=t.fpResetBtn;
+  g('back-link').textContent=t.backLink;
+  if(!g('app').style.display||g('app').style.display==='none') return;
+  // App
+  g('logout-btn').textContent=t.logout;
+  g('lbl-shift').textContent=t.shiftLbl;
+  g('lbl-hrs').textContent=t.hrsLbl;
+  g('shift-save').textContent=t.saveShift;
+  g('lbl-workers').textContent=t.workers;
+  g('lbl-working').textContent=t.working;
+  g('lbl-month').textContent=t.thisMonth;
+  g('lbl-add').textContent=t.addWorker;
+  g('iname').placeholder=t.workerPh;
+  g('lbl-add-btn').textContent=t.addBtn;
+  g('lbl-all').textContent=t.allWorkers;
+  g('lbl-logs').textContent=t.logs;
+  g('lbl-report').textContent=t.report;
+  g('lbl-hours').textContent=t.hoursByWorker;
+  g('lbl-locations').textContent=t.locations;
+  g('lbl-add-loc').textContent=t.addLoc;
+  g('new-loc-name').placeholder=t.locNamePh;
+  g('lbl-add-loc-btn').textContent=t.addLocBtn;
+  g('lbl-swap-loc').textContent=t.swapLoc;
+  g('lbl-swap-btn').textContent=t.swapBtn;
+  g('lbl-accounts').textContent=t.accounts;
+  g('lbl-add-mgr').textContent=t.addMgr;
+  g('new-mgr-user').placeholder=t.mgrUserPh;
+  g('new-mgr-pass').placeholder=t.mgrPassPh;
+  g('lbl-admin-chk').textContent=t.adminChk;
+  g('lbl-add-mgr-btn').textContent=t.addMgrBtn;
+  g('lbl-security').textContent=t.myAccount;
+  g('lbl-chpw').textContent=t.changePw;
+  g('sec-cur').placeholder=t.curPwPh;
+  g('sec-new').placeholder=t.newPwPh;
+  g('sec-new2').placeholder=t.confirmPwPh;
+  g('lbl-chpw-btn').textContent=t.chPwBtn;
+  g('lbl-phone').textContent=t.recoveryPhone;
+  g('lbl-save-phone').textContent=t.savePhone;
+  renderDayCard(); renderList();
+  if(logsOpen) renderLogs();
+  if(repOpen&&repInit) buildReport();
+}
+
+// ── Enter / Exit App ──────────────────────────────────────────────────────
+function enterApp(){
+  g('login-screen').style.display='none';
+  g('app').style.display='block';
+  g('badge').textContent=currentUser.username;
+  if(currentUser.is_admin){
+    g('mgr-wrap').style.display='block';
+    g('loc-wrap').style.display='block';
+    g('ai-rep-wrap').style.display='block';
+    activeLocId=null;
+  } else {
+    activeLocId=currentUser.location_id||null;
+  }
+  (function tick(){g('clk').textContent=new Date().toLocaleTimeString()})();
+  setInterval(function(){g('clk').textContent=new Date().toLocaleTimeString()},1000);
+  setInterval(function(){
+    document.querySelectorAll('.ltimer').forEach(function(e){
+      var ms=Date.now()-+e.dataset.s;
+      e.textContent=fmt(ms);
+      e.className='wtimer ltimer'+(ms>shiftMs?' ot':'');
+    });
+  },1000);
+  g('iname').addEventListener('keydown',function(e){if(e.key==='Enter')addWorker()});
+  g('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+  g('close-day-modal').addEventListener('click',function(e){if(e.target===this)closeCDModal()});
+  g('note-modal').addEventListener('click',function(e){if(e.target===this)closeNoteModal()});
+  g('report-modal').addEventListener('click',function(e){if(e.target===this)g('report-modal').classList.remove('open')});
+  applyLang(); load(); setInterval(load,10000);
+}
+function doLogout(){
+  api('/api/managers/logout',{method:'POST'}).catch(function(){});
+  token=''; currentUser=null;
+  localStorage.removeItem('wt_token'); localStorage.removeItem('wt_user');
+  g('app').style.display='none';
+  g('login-screen').style.display='flex';
+  g('inp-pass').value='';
+}
+
+// ── Load ──────────────────────────────────────────────────────────────────
+function load(){
+  return Promise.all([
+    fetch('/api/workers').then(function(r){return r.json()}),
+    api('/api/settings').then(function(r){if(r.status===401){doLogout();throw new Error('unauth')}return r.json()}),
+    fetch('/api/locations').then(function(r){return r.json()}),
+    api('/api/managers').then(function(r){return r.ok?r.json():[]})
+  ]).then(function(results){
+    workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];
+    dayActive=settings.day_active==='1';
+    shiftMs=parseFloat(settings.shift_hours||8)*3600000;
+    g('shift-input').value=settings.shift_hours||8;
+    hideErr();
+    renderLocUI(); renderLocDropdown(); renderDayCard(); renderStats(); renderList();
+    loadLogs();
+    if(repOpen) buildReport();
+    if(accsOpen) renderManagers();
+  }).then(function(){failCount=0;hideErr();})
+  .catch(function(e){
+    if(e.message==='unauth') return;
+    failCount++;
+    if(failCount>=3) showErr(T[lang].errServer);
+  });
+}
+
+// ── Location UI ───────────────────────────────────────────────────────────
+function renderLocUI(){
+  var t=T[lang];
+  if(currentUser.is_admin){
+    g('loc-banner').style.display='none';
+    var tabs=g('loc-tabs');
+    tabs.style.display='flex';
+    var html='<button class="loc-tab'+(activeLocId===null?' active':'')+'" onclick="setActiveLoc(null)">'+t.allSites+'</button>';
+    for(var i=0;i<locations.length;i++){
+      var l=locations[i];
+      html+='<button class="loc-tab'+(activeLocId===l.id?' active':'')+'" onclick="setActiveLoc(\''+l.id+'\')">'+l.name+'</button>';
+    }
+    tabs.innerHTML=html;
+  } else {
+    g('loc-tabs').style.display='none';
+    var loc=activeLocId?locations.find(function(l){return l.id===activeLocId}):null;
+    if(loc){
+      g('loc-banner-name').textContent=loc.name;
+      g('loc-banner').style.display='flex';
+    } else {
+      g('loc-banner').style.display='none';
+    }
+  }
+}
+function renderLocDropdown(){}
+function setActiveLoc(id){
+  activeLocId=id;
+  renderLocUI(); renderStats(); renderList();
+  if(logsOpen) loadLogs();
+  if(repOpen) buildReport();
+}
+function visibleWorkers(){
+  if(!activeLocId) return workers;
+  return workers.filter(function(w){return w.current_location_id===activeLocId||(!w.working)});
+}
+
+// ── Day Card ──────────────────────────────────────────────────────────────
+function renderDayCard(){
+  var t=T[lang];
+  g('day-lbl').textContent=t.dayClosedLbl;
+  if(dayActive){
+    g('day-card').className='day-card day-open';
+    g('day-title').textContent=t.dayOpen;
+    g('day-sub').textContent=t.dayOpenSub;
+    g('day-btn').textContent=t.closeDay;
+    g('day-btn').className='day-btn close-btn';
+  } else {
+    g('day-card').className='day-card day-closed';
+    g('day-title').textContent=t.dayClosed;
+    g('day-sub').textContent=t.dayClosedSub;
+    g('day-btn').textContent=t.openDay;
+    g('day-btn').className='day-btn open-btn';
+  }
+}
+function toggleDay(){
+  if(!dayActive){
+    api('/api/day/open',{method:'POST'}).then(function(){load()}).catch(function(){toast(T[lang].errServer)});
+  } else {
+    openCDModal();
+  }
+}
+function openCDModal(){
+  var t=T[lang];
+  g('cd-title').textContent=t.closeDayTitle;
+  g('cd-sub').textContent=t.closeDaySub;
+  g('cd-confirm').textContent=t.closeDayBtn;
+  g('cd-cancel').textContent=t.cancelBtn;
+  var active=workers.filter(function(w){return w.working});
+  var now=Date.now();
+  var html='';
+  if(!active.length){
+    html='<div style="color:#94a3b8;text-align:center;padding:20px;font-size:.88rem">'+t.noActiveWorkers+'</div>';
+  } else {
+    for(var i=0;i<active.length;i++){
+      var w=active[i];
+      var elapsed=w.clock_start?now-w.clock_start:0;
+      var isOT=elapsed>shiftMs;
+      html+=('<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f9">'
+        +'<div class="av" style="background:'+clr(w.name)+';width:38px;height:38px;font-size:.82rem;flex-shrink:0">'+ini(w.name)+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:.9rem">'+w.name+'</div>'
+        +'<div style="font-size:.76rem;color:'+(isOT?'#d97706':'#94a3b8')+'">'+fmt(elapsed)+(isOT?' ⚠️ '+t.overtimeLbl:'')+'</div>'
+        +'</div>'
+        +'<label style="display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;color:#d97706;flex-shrink:0;cursor:pointer">'
+        +'<input type="checkbox" id="cd-ot-'+w.id+'" style="width:16px;height:16px;accent-color:#f59e0b"'+(isOT?' checked':'')+'>'
+        +' OT</label>'
+        +'</div>');
+    }
+  }
+  g('cd-list').innerHTML=html;
+  g('close-day-modal').classList.add('open');
+}
+function closeCDModal(){g('close-day-modal').classList.remove('open')}
+async function confirmCloseDay(){
+  var t=T[lang];
+  var active=workers.filter(function(w){return w.working});
+  var otApproved=[];
+  for(var i=0;i<active.length;i++){
+    var cb=g('cd-ot-'+active[i].id);
+    if(cb&&cb.checked) otApproved.push(active[i].id);
+  }
+  closeCDModal();
+  try{
+    await api('/api/day/close',{method:'POST',body:{overtime_approved:otApproved}});
+    load();
+  } catch(e){toast(t.errServer)}
+}
+function saveShift(){
+  var v=parseFloat(g('shift-input').value)||8;
+  api('/api/settings',{method:'POST',body:{shift_hours:v}}).then(function(){load()}).catch(function(){});
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+function renderStats(){
+  var vis=visibleWorkers();
+  g('st-total').textContent=vis.length;
+  g('st-on').textContent=vis.filter(function(w){return w.working}).length;
+  // Month total from logs
+  var now=new Date(), m=now.getMonth(), y=now.getFullYear(), ms=0;
+  allLogs.forEach(function(l){
+    if(!l.clock_out) return;
+    var d=new Date(l.clock_in);
+    if(d.getMonth()===m&&d.getFullYear()===y) ms+=l.duration_ms||0;
+  });
+  g('st-month').textContent=fmt(ms);
+}
+
+// ── Worker List ───────────────────────────────────────────────────────────
+function renderList(){
+  var t=T[lang], list=g('worker-list');
+  var vis=visibleWorkers();
+  if(!vis.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon">👷</div><div>'+t.noWorkers+'</div></div>';
+    return;
+  }
+  var html='';
+  for(var i=0;i<vis.length;i++){
+    var w=vis[i];
+    var isOT=w.working&&w.clock_start&&(Date.now()-w.clock_start)>shiftMs;
+    var cls='wcard'+(w.working?(isOT?' overtime':' on'):'');
+    var locName='';
+    if(w.working&&w.current_location_id){
+      var wloc=locations.find(function(l){return l.id===w.current_location_id});
+      if(wloc) locName=' · '+wloc.name;
+    }
+    var sub=(w.working?t.workingLbl:t.offLbl)+' · '+t.managerLbl+': '+w.manager+locName;
+    var timerHtml='';
+    if(w.working&&w.clock_start){
+      var ms=Date.now()-w.clock_start;
+      timerHtml='<div class="wtimer ltimer'+(isOT?' ot':'')+'" data-s="'+w.clock_start+'">'+fmt(ms)+'</div>';
+    }
+    var noteHtml=w.note?('<div style="font-size:.75rem;color:#64748b;margin-top:5px;font-style:italic;white-space:pre-wrap">📝 '+w.note+'</div>'):'';
+    var forceHtml='';
+    if(w.working){
+      forceHtml='<button class="forceout-btn" onclick="forceOut(\''+w.id+'\',\''+w.name+'\')">'+t.forceOut+'</button>';
+    }
+    html+=('<div class="'+cls+'">'
+      +'<div class="av" style="background:'+clr(w.name)+'">'+ini(w.name)+'</div>'
+      +'<div class="winfo"><div class="wname">'+w.name+'</div>'
+      +'<div class="wsub">'+sub+'</div>'
+      +timerHtml+noteHtml+'</div>'
+      +'<div class="wactions">'+forceHtml
+      +'<button class="del-btn" style="color:#94a3b8;font-size:.9rem" onclick="openNoteModal(\''+w.id+'\')">📝</button>'
+      +'<button class="del-btn" onclick="removeWorker(\''+w.id+'\',\''+w.name+'\')">✕</button>'
+      +'</div></div>');
+  }
+  list.innerHTML=html;
+}
+async function addWorker(){
+  var t=T[lang];
+  var name=g('iname').value.trim();
+  if(!name) return;
+  var btn=g('add-btn'); btn.disabled=true;
+  try{
+    var r=await api('/api/workers',{method:'POST',body:{name:name}});
+    if(!r.ok) throw new Error();
+    g('iname').value='';
+    toast(name+' '+t.added); await load();
+  } catch(e){toast(t.errServer);}
+  btn.disabled=false;
+}
+async function removeWorker(id,name){
+  if(!confirm(T[lang].confirmRemove+' '+name+'?')) return;
+  await api('/api/workers/'+id,{method:'DELETE'}); toast(T[lang].removed); await load();
+}
+async function forceOut(id,name){
+  if(!confirm(T[lang].forceOut+' '+name+'?')) return;
+  await api('/api/workers/'+id+'/forceout',{method:'POST'}); toast(name+' ✓'); await load();
+}
+
+// ── Logs ──────────────────────────────────────────────────────────────────
+function toggleLogs(){
+  logsOpen=!logsOpen;
+  g('logs-panel').classList.toggle('open',logsOpen);
+  if(logsOpen) loadLogs();
+}
+async function loadLogs(){
+  var url=activeLocId?'/api/logs?location_id='+activeLocId:'/api/logs';
+  try{
+    allLogs=await(await api(url)).json();
+    renderStats();
+    if(logsOpen) renderLogs();
+  }catch(e){}
+}
+function renderLogs(){
+  var t=T[lang], body=g('logs-body');
+  if(!allLogs.length){body.innerHTML='<div style="text-align:center;color:#cbd5e1;padding:20px;font-size:.88rem">'+t.noLogs+'</div>';return}
+  var html='';
+  for(var i=0;i<allLogs.length;i++){
+    var l=allLogs[i];
+    var isOT=!!l.overtime, isAp=!!l.overtime_approved, isReq=!!l.overtime_requested;
+    var cls='log-row'+(isOT?' ot-row':(isReq&&!l.clock_out?' ot-row':''));
+    var badgeHtml='';
+    if(isReq&&!isAp&&!l.clock_out) badgeHtml='<span class="ot-badge ot-pend">🔔 '+t.overtimeLbl+'</span>';
+    else if(isOT) badgeHtml='<span class="ot-badge '+(isAp?'ot-ok':'ot-pend')+'">'+(isAp?'OT ✓':'OT')+' </span>';
+    var approveHtml='';
+    if((isReq&&!isAp&&!l.clock_out)||( isOT&&!isAp)) approveHtml='<button class="approve-btn" onclick="approveOT(\''+l.id+'\')">✓ '+t.approveOT+'</button>';
+    var timeRange=fmtDT(l.clock_in)+' → '+(l.clock_out?fmtDT(l.clock_out):'<span style="color:#22c55e">Active</span>');
+    var noteHtml=l.overtime_note?('<br><em style="color:#94a3b8">'+l.overtime_note+'</em>'):'';
+    var locHtml=l.location_name?(' · '+l.location_name):'';
+    html+=('<div class="'+cls+'">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="log-name">'+l.worker_name+badgeHtml+'</div>'
+      +'<div class="log-detail">'+timeRange+noteHtml+'</div>'
+      +'<div class="log-detail">'+t.managerLbl+': '+l.manager+locHtml+' · '+fmt(l.duration_ms)+'</div>'
+      +'<div style="margin-top:4px">'+approveHtml
+      +'<button class="edit-btn" onclick="openEdit(\''+l.id+'\')">✏️ '+t.editSession+'</button>'
+      +'</div></div></div>');
+  }
+  body.innerHTML=html;
+}
+async function approveOT(lid){
+  await api('/api/logs/'+lid,{method:'PUT',body:{overtime_approved:1}});
+  toast(T[lang].saved); await loadLogs();
+}
+
+// ── Edit Modal ────────────────────────────────────────────────────────────
+function openEdit(logId){
+  var t=T[lang], log=null;
+  for(var i=0;i<allLogs.length;i++){if(allLogs[i].id===logId){log=allLogs[i];break}}
+  if(!log) return;
+  editingLogId=logId;
+  var wSel=g('modal-worker');
+  var wHtml='';
+  for(var i=0;i<workers.length;i++){
+    var w=workers[i];
+    wHtml+='<option value="'+w.id+'" data-name="'+w.name+'" data-mgr="'+w.manager+'"'+(w.id===log.worker_id?' selected':'')+'>'+w.name+'</option>';
+  }
+  wSel.innerHTML=wHtml;
+  var lSel=g('modal-loc');
+  var lHtml='<option value="">'+t.noLocation+'</option>';
+  for(var i=0;i<locations.length;i++){
+    var l=locations[i];
+    lHtml+='<option value="'+l.id+'"'+(l.id===log.location_id?' selected':'')+'>'+l.name+'</option>';
+  }
+  lSel.innerHTML=lHtml;
+  g('modal-lbl-worker').textContent=t.workerLbl;
+  g('modal-lbl-mgr').textContent=t.mgrLbl2;
+  g('modal-lbl-in').textContent=t.clockIn;
+  g('modal-lbl-out').textContent=t.clockOut;
+  g('modal-lbl-loc').textContent=t.locationLbl;
+  g('modal-title').textContent=t.editSession;
+  g('modal-cancel').textContent=t.cancelBtn;
+  g('modal-save').textContent=t.saveBtn;
+  g('modal-mgr').value=log.manager||'';
+  g('modal-in').value=tsToLocal(log.clock_in);
+  g('modal-out').value=tsToLocal(log.clock_out);
+  g('ot-approved').checked=!!log.overtime_approved;
+  g('ot-note').value=log.overtime_note||'';
+  g('ot-section').style.display=log.overtime?'block':'none';
+  g('ot-section-title').textContent=t.overtimeSection;
+  g('lbl-approve-ot').textContent=t.approveOT;
+  g('lbl-ot-note').textContent=t.otNote;
+  g('edit-modal').classList.add('open');
+}
+function closeModal(){g('edit-modal').classList.remove('open');editingLogId=null}
+async function saveLog(){
+  if(!editingLogId) return;
+  var t=T[lang];
+  var sel=g('modal-worker'), opt=sel.options[sel.selectedIndex];
+  var ci=localToTs(g('modal-in').value);
+  var co=localToTs(g('modal-out').value);
+  if(!ci){toast(t.errNeedIn);return}
+  if(co&&co<ci){toast(t.errOrder);return}
+  try{
+    var r=await api('/api/logs/'+editingLogId,{method:'PUT',body:{
+      worker_id:opt.value, worker_name:opt.dataset.name,
+      manager:g('modal-mgr').value.trim()||opt.dataset.mgr,
+      clock_in:ci, clock_out:co||null,
+      overtime_approved:g('ot-approved').checked?1:0,
+      overtime_note:g('ot-note').value.trim(),
+      location_id:g('modal-loc').value||null
+    }});
+    if(!r.ok) throw new Error();
+    toast(t.saved); closeModal(); await load(); await loadLogs();
+  } catch(e){toast(t.errServer)}
+}
+async function deleteLog(lid,name){
+  if(!confirm(T[lang].confirmRemove+' '+name+'?')) return;
+  await api('/api/logs/'+lid,{method:'DELETE'}); toast(T[lang].removed); await load(); await loadLogs();
+}
+
+// ── Report ────────────────────────────────────────────────────────────────
+function toggleReport(){repOpen=!repOpen;g('rep-panel').classList.toggle('open',repOpen);if(repOpen)buildReport()}
+async function buildReport(){
+  var t=T[lang], now=new Date();
+  var rm=g('rmon'), ry=g('ryear');
+  if(!repInit){
+    repInit=true;
+    t.MONTHS.forEach(function(m,i){var o=new Option(m,i+1);if(i===now.getMonth())o.selected=true;rm.add(o)});
+    for(var y=now.getFullYear();y>=now.getFullYear()-3;y--){var o=new Option(y,y);if(y===now.getFullYear())o.selected=true;ry.add(o)}
+    rm.onchange=buildReport; ry.onchange=buildReport;
+  } else {
+    var cm=rm.value, cy=ry.value; rm.innerHTML='';
+    t.MONTHS.forEach(function(m,i){var o=new Option(m,i+1);if(i+1===+cm)o.selected=true;rm.add(o)});
+    ry.value=cy;
+  }
+  try{
+    var locParam=activeLocId?'&location_id='+activeLocId:'';
+    var data=await(await fetch('/api/report?month='+rm.value+'&year='+ry.value+locParam)).json();
+    var body=g('rep-body');
+    if(!data.length){body.innerHTML='<div style="text-align:center;color:#cbd5e1;padding:28px;font-size:.88rem">'+t.noReport+' '+t.MONTHS[rm.value-1]+' '+ry.value+'.</div>';return}
+    var html='';
+    for(var i=0;i<data.length;i++){
+      var d=data[i];
+      var otTxt=d.overtime_sessions?' · '+d.overtime_sessions+' '+t.overtimeSessions:'';
+      var noteHtml=d.note?('<div style="font-size:.75rem;color:#64748b;font-style:italic;margin-top:3px">📝 '+d.note+'</div>'):'';
+      html+=('<div class="rep-row">'
+        +'<div class="av" style="background:'+clr(d.name)+';width:38px;height:38px;font-size:.82rem;flex-shrink:0">'+ini(d.name)+'</div>'
+        +'<div style="flex:1;min-width:0"><div class="rn">'+d.name+'</div>'
+        +'<div class="rm2">'+t.managerLbl+': '+d.manager+' · '+d.sessions+' '+(d.sessions!==1?t.sessions:t.session)+otTxt+'</div>'
+        +noteHtml+'</div>'
+        +'<div class="rh">'+fmt(d.total_ms)+'</div></div>');
+    }
+    body.innerHTML=html;
+  } catch(e){g('rep-body').innerHTML='<div style="color:#ef4444;padding:16px">'+T[lang].errServer+'</div>'}
+}
+
+// ── Locations Management ──────────────────────────────────────────────────
+function toggleLocPanel(){locPanelOpen=!locPanelOpen;g('loc-panel').classList.toggle('open',locPanelOpen);if(locPanelOpen)renderLocList()}
+function renderLocList(){
+  var body=g('loc-list'), t=T[lang];
+  if(!locations.length){body.innerHTML='<div style="color:#94a3b8;font-size:.85rem;padding:8px 0">'+t.noLocation+'</div>';return}
+  var html='';
+  for(var i=0;i<locations.length;i++){
+    var l=locations[i];
+    html+='<div class="mgr-row"><div class="mgr-name">'+l.name+'</div>'
+      +'<button class="del-btn" onclick="removeLocation(\''+l.id+'\',\''+l.name.replace(/'/g,"\\'")+'\')" >✕</button></div>';
+  }
+  body.innerHTML=html;
+  var opts='';
+  for(var i=0;i<locations.length;i++) opts+='<option value="'+locations[i].id+'">'+locations[i].name+'</option>';
+  g('swap-sel1').innerHTML=opts;
+  g('swap-sel2').innerHTML=opts;
+  if(locations.length>1) g('swap-sel2').selectedIndex=1;
+}
+async function addLocation(){
+  var t=T[lang], inp=g('new-loc-name'), name=inp.value.trim();
+  if(!name) return;
+  try{
+    var r=await api('/api/locations',{method:'POST',body:{name:name}});
+    if(!r.ok) throw new Error();
+    inp.value=''; toast(t.locAdded); await load(); renderLocList();
+  } catch(e){toast(t.errServer)}
+}
+async function removeLocation(id,name){
+  if(!confirm(T[lang].confirmRemoveLoc+' '+name+'?')) return;
+  try{
+    var r=await api('/api/locations/'+id,{method:'DELETE'});
+    if(!r.ok) throw new Error();
+    toast(T[lang].locRemoved); await load(); renderLocList();
+  } catch(e){toast(T[lang].errServer)}
+}
+async function swapLocations(){
+  var t=T[lang];
+  var id1=g('swap-sel1').value, id2=g('swap-sel2').value;
+  if(id1===id2){toast(t.swapSameErr);return}
+  try{
+    var r=await api('/api/locations/swap',{method:'POST',body:{loc1:id1,loc2:id2}});
+    if(!r.ok) throw new Error();
+    toast(t.swapped); await load(); await loadManagers(); renderLocList();
+  } catch(e){toast(t.errServer)}
+}
+
+// ── Manager Accounts ──────────────────────────────────────────────────────
+function toggleAccounts(){accsOpen=!accsOpen;g('accounts-panel').classList.toggle('open',accsOpen);if(accsOpen)loadManagers()}
+async function loadManagers(){
+  try{managers=await(await api('/api/managers')).json();renderManagers()}catch(e){}
+}
+function renderManagers(){
+  var t=T[lang], body=g('mgr-list');
+  if(!managers.length){body.innerHTML='';return}
+  var html='';
+  for(var i=0;i<managers.length;i++){
+    var m=managers[i];
+    var locOpts='<option value="">'+t.noLocation+'</option>';
+    for(var j=0;j<locations.length;j++){
+      var l=locations[j];
+      locOpts+='<option value="'+l.id+'"'+(l.id===m.location_id?' selected':'')+'>'+l.name+'</option>';
+    }
+    var actionHtml=m.id!==currentUser.id
+      ?'<button class="del-btn" onclick="removeManager(\''+m.id+'\',\''+m.username+'\')">✕</button>'
+      :'<span style="font-size:.76rem;color:#94a3b8">You</span>';
+    html+=('<div class="mgr-row">'
+      +'<div class="mgr-name">'+m.username+'</div>'
+      +'<span class="mgr-role'+(m.is_admin?' admin':'')+'">'+( m.is_admin?t.adminChk:'Manager')+'</span>'
+      +'<select class="loc-sel" onchange="assignLocation(\''+m.id+'\',this.value)" title="'+t.locationLbl+'">'+locOpts+'</select>'
+      +actionHtml+'</div>');
+  }
+  body.innerHTML=html;
+}
+async function assignLocation(mid,locId){
+  try{
+    var r=await api('/api/managers/'+mid+'/location',{method:'POST',body:{location_id:locId||null}});
+    if(!r.ok) throw new Error();
+    toast(T[lang].swapped); await loadManagers();
+  } catch(e){toast(T[lang].errServer)}
+}
+async function addManager(){
+  var t=T[lang];
+  var user=g('new-mgr-user').value.trim(), pass=g('new-mgr-pass').value;
+  var isAdmin=g('new-mgr-admin').checked;
+  if(!user||!pass){toast(t.mgrUserPh);return}
+  try{
+    var r=await api('/api/managers',{method:'POST',body:{username:user,password:pass,is_admin:isAdmin}});
+    var d=await r.json();
+    if(r.status===409){toast(t.errUserTaken);return}
+    if(!r.ok) throw new Error();
+    g('new-mgr-user').value=''; g('new-mgr-pass').value=''; g('new-mgr-admin').checked=false;
+    toast(user+' '+t.mgrAdded); await loadManagers();
+  } catch(e){toast(t.errServer)}
+}
+async function removeManager(id,name){
+  if(!confirm(T[lang].confirmRemoveMgr+' '+name+'?')) return;
+  await api('/api/managers/'+id,{method:'DELETE'}); toast(T[lang].mgrRemoved); await loadManagers();
+}
+
+// ── AI Reports ────────────────────────────────────────────────────────────
+var aiRepOpen=false, aiRepInit=false;
+function toggleAIReports(){
+  aiRepOpen=!aiRepOpen;
+  g('ai-rep-panel').classList.toggle('open',aiRepOpen);
+  if(aiRepOpen) initAIRepPanel();
+}
+function initAIRepPanel(){
+  var t=T[lang], now=new Date();
+  g('lbl-apikey').textContent=t.apiKeyLbl;
+  g('lbl-apikey-btn').textContent=t.saveBtn||'Save';
+  g('lbl-gen-btn').textContent=t.generateReports;
+  g('lbl-ai-reports').textContent=t.aiReports;
+  if(!aiRepInit){
+    aiRepInit=true;
+    var mon=g('ai-rep-mon'), yr=g('ai-rep-yr');
+    T.en.MONTHS.forEach(function(m,i){
+      var o=new Option(T[lang].MONTHS[i],i+1);
+      if(i===now.getMonth()-1||(now.getMonth()===0&&i===11)) o.selected=true;
+      mon.add(o);
+    });
+    for(var y=now.getFullYear();y>=now.getFullYear()-3;y--){
+      var o=new Option(y,y); if(y===now.getFullYear()) o.selected=true; yr.add(o);
+    }
+  }
+  loadAIReports();
+}
+async function saveApiKey(){
+  var t=T[lang], key=g('api-key-inp').value.trim();
+  if(!key) return;
+  try{
+    await api('/api/settings/apikey',{method:'POST',body:{key:key}});
+    toast(t.apiKeySaved); g('api-key-inp').value='';
+  } catch(e){toast(t.errServer)}
+}
+async function generateAIReports(){
+  var t=T[lang], btn=g('gen-btn');
+  btn.disabled=true; g('lbl-gen-btn').textContent=t.generating;
+  var month=+g('ai-rep-mon').value, year=+g('ai-rep-yr').value, lang2=g('ai-rep-lang').value;
+  try{
+    var r=await api('/api/reports/generate',{method:'POST',body:{month:month,year:year,lang:lang2}});
+    var d=await r.json();
+    if(d.errors&&d.errors.length) toast('⚠️ '+d.errors[0]);
+    else toast(t.saved);
+    loadAIReports();
+  } catch(e){toast(t.errServer)}
+  btn.disabled=false; g('lbl-gen-btn').textContent=t.generateReports;
+}
+async function loadAIReports(){
+  try{
+    var rows=await(await api('/api/reports')).json();
+    renderAIReports(rows);
+  } catch(e){}
+}
+function renderAIReports(rows){
+  var t=T[lang], body=g('ai-rep-list');
+  if(!rows.length){body.innerHTML='<div style="color:#94a3b8;font-size:.85rem;padding:12px 0">'+t.noReports+'</div>';return}
+  var html='';
+  var months=T[lang].MONTHS;
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];
+    var dt=new Date(r.generated_at);
+    var label=r.worker_name+' — '+months[r.month-1]+' '+r.year;
+    var sub=dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    html+=('<div class="rep-row" style="flex-wrap:wrap;gap:8px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="rn">'+label+'</div>'
+      +'<div class="rm2">'+sub+'</div>'
+      +'</div>'
+      +'<button class="edit-btn" onclick="viewAIReport(\''+r.id+'\')">📄 '+t.viewReport+'</button>'
+      +'<button class="forceout-btn" onclick="deleteAIReport(\''+r.id+'\')">'+t.deleteReport+'</button>'
+      +'</div>');
+  }
+  body.innerHTML=html;
+}
+async function viewAIReport(rid){
+  try{
+    var r=await(await api('/api/reports/'+rid)).json();
+    var months=T[lang].MONTHS;
+    g('report-modal-title').textContent=r.worker_name+' — '+months[r.month-1]+' '+r.year;
+    g('report-modal-body').textContent=r.content;
+    g('report-modal').classList.add('open');
+  } catch(e){toast(T[lang].errServer)}
+}
+async function deleteAIReport(rid){
+  if(!confirm(T[lang].confirmRemove+'?')) return;
+  await api('/api/reports/'+rid,{method:'DELETE'});
+  toast(T[lang].removed); loadAIReports();
+}
+
+// ── Worker Notes ──────────────────────────────────────────────────────────
+var editingNoteWid=null;
+function openNoteModal(wid){
+  var w=workers.find(function(x){return x.id===wid});
+  if(!w) return;
+  var t=T[lang];
+  editingNoteWid=wid;
+  g('note-modal-title').textContent=w.name;
+  g('note-ta').placeholder=t.notePh;
+  g('note-ta').value=w.note||'';
+  g('note-save').textContent=t.noteBtn;
+  g('note-cancel').textContent=t.cancelBtn;
+  g('note-modal').classList.add('open');
+  setTimeout(function(){g('note-ta').focus()},100);
+}
+function closeNoteModal(){g('note-modal').classList.remove('open');editingNoteWid=null}
+async function saveWorkerNote(){
+  if(!editingNoteWid) return;
+  var note=g('note-ta').value.trim();
+  try{
+    await api('/api/workers/'+editingNoteWid+'/note',{method:'POST',body:{note:note}});
+    toast(T[lang].saved); closeNoteModal(); await load();
+  } catch(e){toast(T[lang].errServer)}
+}
+
+// ── Security ──────────────────────────────────────────────────────────────
+function toggleSecurity(){secOpen=!secOpen;g('sec-panel').classList.toggle('open',secOpen);if(secOpen)loadMyPhone()}
+async function loadMyPhone(){
+  try{var me=await(await api('/api/managers/me')).json();g('sec-phone').value=me.phone||''}catch(e){}
+}
+async function changePassword(){
+  var t=T[lang];
+  var cur=g('sec-cur').value, nw=g('sec-new').value, nw2=g('sec-new2').value;
+  var msg=g('pw-msg'); msg.className='sec-msg';
+  if(nw!==nw2){msg.className='sec-msg err';msg.textContent=t.errMismatch;return}
+  if(nw.length<4){msg.className='sec-msg err';msg.textContent=t.errTooShort;return}
+  try{
+    var me=await(await api('/api/managers/me')).json();
+    var r=await api('/api/managers/'+me.id+'/password',{method:'POST',body:{current:cur,new:nw}});
+    var d=await r.json();
+    if(d.ok){msg.className='sec-msg ok';msg.textContent=t.pwChanged;g('sec-cur').value='';g('sec-new').value='';g('sec-new2').value=''}
+    else{msg.className='sec-msg err';msg.textContent=d.error==='wrong_current'?t.errWrongCur:t.errTooShort}
+  } catch(e){msg.className='sec-msg err';msg.textContent=t.errServer}
+}
+async function savePhone(){
+  var t=T[lang], phone=g('sec-phone').value.trim(), msg=g('phone-msg'); msg.className='sec-msg';
+  try{
+    var me=await(await api('/api/managers/me')).json();
+    await api('/api/managers/'+me.id+'/phone',{method:'POST',body:{phone:phone}});
+    msg.className='sec-msg ok'; msg.textContent=t.phoneSaved;
+  } catch(e){msg.className='sec-msg err';msg.textContent=t.errServer}
+}
+
+// ── Login / Forgot ────────────────────────────────────────────────────────
+async function doLogin(){
+  var t=T[lang];
+  var user=g('inp-user').value.trim(), pass=g('inp-pass').value;
+  var err=g('login-err'), btn=g('login-btn');
+  err.style.display='none'; btn.disabled=true; btn.textContent='...';
+  try{
+    var r=await fetch('/api/managers/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    var d=await r.json();
+    if(d.ok){
+      token=d.token;
+      currentUser={id:d.id,username:d.username,is_admin:d.is_admin,location_id:d.location_id};
+      localStorage.setItem('wt_token',token);
+      localStorage.setItem('wt_user',JSON.stringify(currentUser));
+      enterApp();
+    } else {
+      err.textContent=t.errWrongCreds; err.style.display='block';
+      g('inp-pass').value='';
+    }
+  } catch(e){err.textContent=t.errServer;err.style.display='block'}
+  btn.disabled=false; btn.textContent=t.loginBtn;
+}
+function showForgot(){
+  g('login-form').style.display='none';
+  g('forgot-panel').classList.add('show');
+  g('fp-ok').style.display='none';
+  g('fp-err').style.display='none';
+  g('fp-temp-block').style.display='none';
+}
+function showLogin(){
+  g('forgot-panel').classList.remove('show');
+  g('login-form').style.display='block';
+}
+async function doForgot(){
+  var t=T[lang];
+  var user=g('fp-user').value.trim(), phone=g('fp-phone').value.trim();
+  var ok=g('fp-ok'), err=g('fp-err'), btn=g('fp-btn');
+  ok.style.display='none'; err.style.display='none'; btn.disabled=true;
+  try{
+    var r=await fetch('/api/managers/forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,phone:phone})});
+    var d=await r.json();
+    if(d.ok){
+      if(d.sent){ok.textContent=t.forgotSent}
+      else{ok.textContent=t.forgotShown+' '+d.temp_password}
+      ok.style.display='block';
+      g('fp-temp-block').style.display='block';
+    } else {
+      var msg=d.error==='no_phone'?t.errNoPhone:d.error==='wrong_phone'?t.errWrongPhone:t.errServer;
+      err.textContent=msg; err.style.display='block';
+    }
+  } catch(e){err.textContent=t.errServer;err.style.display='block'}
+  btn.disabled=false;
+}
+async function doReset(){
+  var t=T[lang];
+  var tempPw=g('fp-temp').value.trim(), newPw=g('fp-newpw').value;
+  var err=g('fp-reset-err'), btn=g('fp-reset-btn');
+  err.style.display='none';
+  if(newPw.length<4){err.textContent=t.errTooShort;err.style.display='block';return}
+  btn.disabled=true;
+  try{
+    var r=await fetch('/api/managers/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({temp_password:tempPw,new_password:newPw})});
+    var d=await r.json();
+    if(d.ok){showLogin();toast(t.pwChanged)}
+    else{err.textContent=t.errInvalidTemp;err.style.display='block'}
+  } catch(e){err.textContent=t.errServer;err.style.display='block'}
+  btn.disabled=false;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+setLang(lang);
+if(token&&currentUser){
+  fetch('/api/managers/me',{headers:{'X-Token':token}})
+    .then(function(r){if(r.ok)enterApp();else{localStorage.removeItem('wt_token');localStorage.removeItem('wt_user')}})
+    .catch(function(){});
+}
+</script>
+</body>
+</html>

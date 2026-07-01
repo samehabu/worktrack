@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>WorkTrack – Worker</title>
+<link rel="manifest" href="/manifest-worker.json"/>
+<meta name="theme-color" content="#4f46e5"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="WorkTrack"/>
+<link rel="apple-touch-icon" href="/icons/worker-180.png"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;min-height:100svh;display:flex;flex-direction:column;align-items:center}
+body.ar,body.he{font-family:'Segoe UI',Tahoma,system-ui,sans-serif}
+header{width:100%;background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:1.2rem;font-weight:800;color:#4f46e5}
+.header-right{display:flex;align-items:center;gap:10px}
+.badge{font-size:.75rem;font-weight:700;background:#ede9fe;color:#4f46e5;padding:4px 12px;border-radius:999px}
+.lang-btns{display:flex;gap:4px}
+.lang-btn{padding:4px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;background:#fff;color:#94a3b8;transition:all .15s}
+.lang-btn.active{border-color:#4f46e5;color:#4f46e5;background:#ede9fe}
+main{width:100%;max-width:420px;padding:24px 16px;display:flex;flex-direction:column;gap:16px}
+.card{background:#fff;border-radius:18px;padding:22px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-label{font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+body.ar .card-label,body.he .card-label{letter-spacing:0;text-transform:none}
+select{width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:1rem;color:#1a1a2e;background:#fff;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+body.ar select,body.he select{background-position:left 14px center}
+select:focus{border-color:#4f46e5}
+/* Waiting */
+.waiting-card{text-align:center;padding:40px 24px}
+.waiting-icon{font-size:3.5rem;margin-bottom:16px}
+.waiting-title{font-size:1.2rem;font-weight:800;color:#1a1a2e;margin-bottom:8px}
+.waiting-sub{font-size:.88rem;color:#94a3b8;line-height:1.5}
+.pulse{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* Location step */
+.loc-card{display:none}
+.loc-card.show{display:block}
+.loc-grid{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.loc-btn{width:100%;padding:16px;border:2px solid #e2e8f0;border-radius:14px;font-size:1rem;font-weight:700;color:#1a1a2e;background:#fff;cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:12px}
+body.ar .loc-btn,body.he .loc-btn{text-align:right}
+.loc-btn:hover,.loc-btn.selected{border-color:#4f46e5;background:#ede9fe;color:#4f46e5}
+.loc-icon{font-size:1.4rem;flex-shrink:0}
+/* Status */
+.status-card{display:none;text-align:center}
+.status-card.show{display:block}
+.avatar{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#fff;margin:0 auto 14px}
+.wname{font-size:1.4rem;font-weight:800;color:#1a1a2e}
+.wmanager{font-size:.85rem;color:#94a3b8;margin-top:5px}
+.wlocation{font-size:.82rem;font-weight:700;color:#4f46e5;margin-top:4px;background:#ede9fe;padding:4px 12px;border-radius:999px;display:inline-block}
+.timer{font-size:3.2rem;font-weight:800;letter-spacing:-2px;margin:24px 0 6px;font-variant-numeric:tabular-nums;line-height:1}
+.timer.green{color:#22c55e}
+.timer.grey{color:#e2e8f0}
+.tlabel{font-size:.76rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+body.ar .tlabel,body.he .tlabel{letter-spacing:0;text-transform:none}
+.ot-banner{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:12px 16px;font-size:.85rem;color:#c2410c;font-weight:600;margin-top:14px;display:none}
+.ot-banner.show{display:block}
+.clock-btn{width:100%;margin-top:20px;padding:22px;border:none;border-radius:16px;font-size:1.15rem;font-weight:800;cursor:pointer;transition:transform .1s,filter .15s;-webkit-tap-highlight-color:transparent}
+.clock-btn.in{background:#22c55e;color:#fff}
+.clock-btn.in:active{transform:scale(.97);filter:brightness(.9)}
+.clock-btn.out{background:#fee2e2;color:#ef4444}
+.clock-btn.out:active{transform:scale(.97)}
+.clock-btn:disabled{opacity:.5;cursor:default}
+.pick-card{display:none}
+.pick-card.show{display:block}
+.today-card{display:none;flex-direction:row;align-items:center;justify-content:space-between}
+.today-card.show{display:flex}
+.tlbl{font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+body.ar .tlbl,body.he .tlbl{letter-spacing:0;text-transform:none}
+.tval{font-size:1.4rem;font-weight:800;color:#4f46e5}
+.err-box{background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;padding:16px;font-size:.88rem;color:#be123c;line-height:1.5;display:none}
+.err-box.show{display:block}
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a2e;color:#fff;padding:11px 26px;border-radius:999px;font-size:.9rem;font-weight:600;opacity:0;transition:all .2s;pointer-events:none;z-index:99;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">WorkTrack</div>
+  <div class="header-right">
+    <div class="lang-btns">
+      <button class="lang-btn" onclick="setLang('he')">עב</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('ar')">ع</button>
+    </div>
+    <div class="badge" id="badge">Worker</div>
+  </div>
+</header>
+<main>
+  <div class="err-box" id="err"></div>
+
+  <!-- Waiting for manager -->
+  <div class="card waiting-card" id="waiting-card" style="display:none">
+    <div class="waiting-icon pulse">🔒</div>
+    <div class="waiting-title" id="waiting-title">Waiting for Manager</div>
+    <div class="waiting-sub"   id="waiting-sub">The manager has not opened the workday yet.<br>Please wait.</div>
+  </div>
+
+  <!-- Step 1: Location picker -->
+  <div class="card loc-card" id="loc-card">
+    <div class="card-label" id="lbl-location">Choose your work location</div>
+    <div class="loc-grid" id="loc-grid"></div>
+  </div>
+
+  <!-- Step 2: Name picker -->
+  <div class="card pick-card" id="pick-card">
+    <div class="card-label" id="lbl-who">Who are you?</div>
+    <select id="sel" onchange="pickWorker()">
+      <option value="" id="opt-select">— Select your name —</option>
+    </select>
+  </div>
+
+  <!-- Status card -->
+  <div class="card status-card" id="status-card">
+    <div class="avatar" id="av"></div>
+    <div class="wname"    id="wname"></div>
+    <div class="wmanager" id="wmanager"></div>
+    <div class="wlocation" id="wlocation" style="display:none"></div>
+    <div class="timer grey" id="timer">00:00:00</div>
+    <div class="tlabel"     id="tlabel"></div>
+    <div class="ot-banner"  id="ot-banner"></div>
+    <button class="clock-btn in" id="cbtn" onclick="clockToggle()"></button>
+  </div>
+
+  <div class="card today-card" id="today-card">
+    <div class="tlbl" id="lbl-today">Today's Hours</div>
+    <div class="tval" id="today-val">0h 0m</div>
+  </div>
+</main>
+<div id="toast"></div>
+<script>
+const T = {
+  en: {
+    badge:'Worker', location:"Choose your work location", who:"Who are you?",
+    selectName:"— Select your name —", noLocations:"No locations set up yet. Ask your manager.",
+    notClockedIn:"Not clocked in", currentShift:"Current shift",
+    clockIn:"Clock In", clockOut:"Clock Out", todayHours:"Today's Hours",
+    manager:"Manager", locationLbl:"Location",
+    waitingTitle:"Waiting for Manager",
+    waitingSub:"The manager has not opened the workday yet.<br>Please wait.",
+    overtimeMsg:"⚠️ You are working overtime!",
+    errServer:"⚠️ Cannot reach server. Make sure the server is running.",
+    toastIn:"Clocked in ✓", toastOut:"Clocked out ✓"
+  },
+  ar: {
+    badge:'موظف', location:"اختر موقع عملك", who:"من أنت؟",
+    selectName:"— اختر اسمك —", noLocations:"لم يتم إعداد مواقع بعد. تحدث مع مديرك.",
+    notClockedIn:"لم تسجّل الدخول", currentShift:"الوردية الحالية",
+    clockIn:"تسجيل الدخول", clockOut:"تسجيل الخروج", todayHours:"ساعات اليوم",
+    manager:"المدير", locationLbl:"الموقع",
+    waitingTitle:"في انتظار المدير",
+    waitingSub:"لم يفتح المدير يوم العمل بعد.<br>الرجاء الانتظار.",
+    overtimeMsg:"⚠️ أنت تعمل إضافيًا!",
+    errServer:"⚠️ لا يمكن الوصول إلى الخادم.",
+    toastIn:"تم تسجيل الدخول ✓", toastOut:"تم تسجيل الخروج ✓"
+  },
+  he: {
+    badge:'עובד', location:"בחר מיקום עבודה", who:"מי אתה?",
+    selectName:"— בחר את שמך —", noLocations:"לא הוגדרו מיקומים. פנה למנהל.",
+    notClockedIn:"לא רשום", currentShift:"משמרת נוכחית",
+    clockIn:"כניסה לעבודה", clockOut:"יציאה מעבודה", todayHours:"שעות היום",
+    manager:"מנהל", locationLbl:"מיקום",
+    waitingTitle:"ממתין למנהל",
+    waitingSub:"המנהל עדיין לא פתח את יום העבודה.<br>אנא המתן.",
+    overtimeMsg:"⚠️ אתה עובד שעות נוספות!",
+    errServer:"⚠️ לא ניתן להגיע לשרת.",
+    toastIn:"נרשמת בהצלחה ✓", toastOut:"יצאת בהצלחה ✓"
+  }
+};
+
+let lang     = localStorage.getItem('wt_lang') || 'he';
+let workers  = [], locations = [];
+let selId    = localStorage.getItem('wt_wid') || '';
+let selLocId = localStorage.getItem('wt_loc') || '';
+let interval = null, dayActive = false, shiftMs = 8*3600000;
+
+function setLang(l){
+  lang=l; localStorage.setItem('wt_lang',l);
+  const rtl=l==='ar'||l==='he';
+  document.documentElement.lang=l; document.documentElement.dir=rtl?'rtl':'ltr';
+  document.body.className=rtl?l:'';
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.textContent===(l==='en'?'EN':l==='ar'?'ع':'עב')));
+  applyLang();
+}
+
+function applyLang(){
+  const t=T[lang];
+  document.getElementById('badge').textContent=t.badge;
+  document.getElementById('lbl-location').textContent=t.location;
+  document.getElementById('lbl-who').textContent=t.who;
+  document.getElementById('opt-select').textContent=t.selectName;
+  document.getElementById('lbl-today').textContent=t.todayHours;
+  document.getElementById('waiting-title').textContent=t.waitingTitle;
+  document.getElementById('waiting-sub').innerHTML=t.waitingSub;
+  renderLocations();
+  const w=workers.find(w=>w.id===selId);
+  const cb=document.getElementById('cbtn'), lb=document.getElementById('tlabel');
+  if(w){
+    document.getElementById('wmanager').textContent=t.manager+': '+w.manager;
+    if(w.working){cb.textContent=t.clockOut;lb.textContent=t.currentShift;}
+    else{cb.textContent=t.clockIn;lb.textContent=t.notClockedIn;}
+  } else {cb.textContent=t.clockIn;lb.textContent=t.notClockedIn;}
+}
+
+const COLORS=['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#0ea5e9','#ef4444','#14b8a6'];
+function clr(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))|0;return COLORS[Math.abs(h)%COLORS.length]}
+function ini(n){return n.trim().split(/\s+/).map(s=>s[0]).join('').toUpperCase().slice(0,2)}
+function hms(ms){if(ms<0)ms=0;const h=String(Math.floor(ms/3600000)).padStart(2,'0'),m=String(Math.floor(ms%3600000/60000)).padStart(2,'0'),s=String(Math.floor(ms%60000/1000)).padStart(2,'0');return`${h}:${m}:${s}`}
+function fmt(ms){return`${Math.floor(ms/3600000)}h ${Math.floor(ms%3600000/60000)}m`}
+function showErr(m){const e=document.getElementById('err');e.textContent=m;e.classList.add('show')}
+function hideErr(){document.getElementById('err').classList.remove('show')}
+let _t; function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(_t);_t=setTimeout(()=>e.classList.remove('show'),2400)}
+
+const LOC_ICONS = ['🏢','🏭','🏪','🏗️','🏬','🏦','🏥','🏫','🏨','🏩'];
+function locIcon(name, idx){ return LOC_ICONS[idx % LOC_ICONS.length]; }
+
+function renderLocations(){
+  const t=T[lang], grid=document.getElementById('loc-grid');
+  if(!locations.length){
+    grid.innerHTML=`<div style="color:#94a3b8;font-size:.88rem;padding:8px 0">${t.noLocations}</div>`;
+    return;
+  }
+  grid.innerHTML=locations.map((l,i)=>`
+    <button class="loc-btn ${selLocId===l.id?'selected':''}" onclick="pickLocation('${l.id}')">
+      <span class="loc-icon">${locIcon(l.name,i)}</span>
+      <span>${l.name}</span>
+    </button>`).join('');
+}
+
+function pickLocation(lid){
+  selLocId=lid; localStorage.setItem('wt_loc',lid);
+  document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  render();
+}
+
+async function load(){
+  try{
+    const [wr,sr,lr]=await Promise.all([fetch('/api/workers'),fetch('/api/settings'),fetch('/api/locations')]);
+    workers   = await wr.json();
+    const settings = await sr.json();
+    locations = await lr.json();
+    dayActive = settings.day_active==='1';
+    shiftMs   = parseFloat(settings.shift_hours||8)*3600000;
+    hideErr();
+    // rebuild dropdown
+    const sel=document.getElementById('sel'), cur=sel.value||selId;
+    sel.innerHTML=`<option value="">${T[lang].selectName}</option>`;
+    [...workers].sort((a,b)=>a.name.localeCompare(b.name)).forEach(w=>{
+      const o=document.createElement('option');
+      o.value=w.id; o.textContent=w.name; if(w.id===cur)o.selected=true; sel.appendChild(o);
+    });
+    if(cur&&workers.find(w=>w.id===cur)) selId=cur;
+    // validate saved location
+    if(selLocId && !locations.find(l=>l.id===selLocId)) selLocId='';
+    render();
+  }catch{ showErr(T[lang].errServer) }
+}
+
+function pickWorker(){ selId=document.getElementById('sel').value; localStorage.setItem('wt_wid',selId); render(); }
+
+function render(){
+  const t=T[lang];
+  const waitCard  =document.getElementById('waiting-card');
+  const locCard   =document.getElementById('loc-card');
+  const pickCard  =document.getElementById('pick-card');
+  const statusCard=document.getElementById('status-card');
+  const todayCard =document.getElementById('today-card');
+
+  if(!dayActive){
+    waitCard.style.display='block'; locCard.classList.remove('show');
+    pickCard.classList.remove('show'); statusCard.classList.remove('show');
+    todayCard.classList.remove('show'); clearInterval(interval); return;
+  }
+  waitCard.style.display='none';
+
+  // Step 1: pick location
+  renderLocations();
+  locCard.classList.add('show');
+
+  if(!selLocId){ pickCard.classList.remove('show'); statusCard.classList.remove('show'); todayCard.classList.remove('show'); clearInterval(interval); return; }
+
+  // Step 2: pick name
+  pickCard.classList.add('show');
+
+  const w=workers.find(w=>w.id===selId);
+  if(!w){ statusCard.classList.remove('show'); todayCard.classList.remove('show'); clearInterval(interval); return; }
+
+  statusCard.classList.add('show'); todayCard.classList.add('show');
+  const av=document.getElementById('av');
+  av.textContent=ini(w.name); av.style.background=clr(w.name);
+  document.getElementById('wname').textContent=w.name;
+  document.getElementById('wmanager').textContent=t.manager+': '+w.manager;
+
+  // location badge
+  const locEl=document.getElementById('wlocation');
+  const loc=locations.find(l=>l.id===(w.working?w.current_location_id:selLocId));
+  if(loc){ locEl.textContent='📍 '+loc.name; locEl.style.display='inline-block'; }
+  else locEl.style.display='none';
+
+  clearInterval(interval);
+  const te=document.getElementById('timer'),lb=document.getElementById('tlabel'),cb=document.getElementById('cbtn');
+  const otBanner=document.getElementById('ot-banner');
+
+  if(w.working&&w.clock_start){
+    te.className='timer green'; lb.textContent=t.currentShift;
+    cb.textContent=t.clockOut; cb.className='clock-btn out';
+    function tick(){
+      const elapsed=Date.now()-w.clock_start;
+      te.textContent=hms(elapsed);
+      document.getElementById('today-val').textContent=fmt(elapsed);
+      if(elapsed>shiftMs){otBanner.innerHTML=t.overtimeMsg;otBanner.classList.add('show');}
+      else otBanner.classList.remove('show');
+    }
+    tick(); interval=setInterval(tick,1000);
+  } else {
+    te.className='timer grey'; te.textContent='00:00:00';
+    lb.textContent=t.notClockedIn; cb.textContent=t.clockIn; cb.className='clock-btn in';
+    document.getElementById('today-val').textContent='0h 0m';
+    otBanner.classList.remove('show');
+  }
+}
+
+async function clockToggle(){
+  if(!selId) return;
+  const w=workers.find(w=>w.id===selId);
+  if(!w.working && !selLocId){ toast(T[lang].location); return; }
+  const cb=document.getElementById('cbtn'); cb.disabled=true;
+  try{
+    const body = w.working ? {} : {location_id: selLocId};
+    const r=await fetch(`/api/workers/${selId}/clock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(data.error==='day_not_active'){showErr(T[lang].waitingTitle);cb.disabled=false;return;}
+    if(!r.ok) throw new Error();
+    toast(w.working?T[lang].toastOut:T[lang].toastIn);
+    await load();
+  }catch(e){if(!e.message)showErr(T[lang].errServer);}
+  cb.disabled=false;
+}
+
+setLang(lang);
+load();
+setInterval(load,5000);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+</script>
+</body>
+</html>

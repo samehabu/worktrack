@@ -243,8 +243,8 @@ async function load(){
     workers   = await wr.json();
     const settings = await sr.json();
     locations = await lr.json();
-    dayActive = settings.day_active==='1';
     shiftMs   = parseFloat(settings.shift_hours||8)*3600000;
+    // dayActive is now per-location — computed in render() from locations array
     hideErr();
     // rebuild dropdown
     const sel=document.getElementById('sel'), cur=sel.value||selId;
@@ -270,10 +270,21 @@ function render(){
   const statusCard=document.getElementById('status-card');
   const todayCard =document.getElementById('today-card');
 
-  if(!dayActive){
-    waitCard.style.display='block'; locCard.classList.remove('show');
+  // Check if selected location's day is active
+  var selLoc = locations.find(function(l){return l.id===selLocId});
+  dayActive = selLoc ? !!selLoc.day_active : false;
+
+  if(selLocId && !dayActive){
+    waitCard.style.display='block'; locCard.classList.add('show');
     pickCard.classList.remove('show'); statusCard.classList.remove('show');
-    todayCard.classList.remove('show'); clearInterval(interval); return;
+    todayCard.classList.remove('show'); clearInterval(interval);
+    renderLocations(); return;
+  }
+  if(!selLocId){
+    waitCard.style.display='none'; locCard.classList.add('show');
+    pickCard.classList.remove('show'); statusCard.classList.remove('show');
+    todayCard.classList.remove('show'); clearInterval(interval);
+    renderLocations(); return;
   }
   waitCard.style.display='none';
 

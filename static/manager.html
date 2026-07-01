@@ -743,8 +743,8 @@ function load(){
     api('/api/managers').then(function(r){return r.ok?r.json():[]})
   ]).then(function(results){
     workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];
-    dayActive=settings.day_active==='1';
     shiftMs=parseFloat(settings.shift_hours||8)*3600000;
+    // dayActive is now per-location — computed in renderDayCard from locations array
     g('shift-input').value=settings.shift_hours||8;
     hideErr();
     renderLocUI(); renderLocDropdown(); renderDayCard(); renderStats(); renderList();
@@ -796,37 +796,79 @@ function visibleWorkers(){
 }
 
 // ── Day Card ──────────────────────────────────────────────────────────────
+function _activeLoc(){
+  // Returns the location object the current user manages, or the selected one (admin)
+  var locId = currentUser.is_admin ? activeLocId : (currentUser.location_id || null);
+  return locId ? locations.find(function(l){return l.id===locId}) : null;
+}
 function renderDayCard(){
   var t=T[lang];
   g('day-lbl').textContent=t.dayClosedLbl;
+  var loc=_activeLoc();
+  if(!loc){
+    // Admin on "All Sites" — show per-location summary inside the card
+    g('day-btn').style.display='none';
+    g('day-card').className='day-card';
+    g('day-title').textContent='';
+    if(!locations.length){
+      g('day-sub').textContent=t.noLocation;
+    } else {
+      var html='';
+      for(var i=0;i<locations.length;i++){
+        var l=locations[i];
+        var open=!!l.day_active;
+        html+=('<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+          +'<div><div style="font-weight:700;font-size:.88rem">'+l.name+'</div>'
+          +'<div style="font-size:.74rem;color:'+(open?'#22c55e':'#94a3b8')+'">● '+(open?t.dayOpen:t.dayClosed)+'</div>'
+          +'</div>'
+          +'<button class="day-btn '+(open?'close-btn':'open-btn')+'" style="padding:6px 14px;font-size:.78rem" onclick="toggleDayForLoc(\''+l.id+'\','+open+')">'
+          +(open?t.closeDay:t.openDay)+'</button>'
+          +'</div>');
+      }
+      g('day-sub').innerHTML=html;
+    }
+    dayActive=false;
+    return;
+  }
+  g('day-btn').style.display='';
+  g('day-sub').textContent='';
+  dayActive=!!loc.day_active;
   if(dayActive){
     g('day-card').className='day-card day-open';
-    g('day-title').textContent=t.dayOpen;
+    g('day-title').textContent=t.dayOpen+(loc?' · '+loc.name:'');
     g('day-sub').textContent=t.dayOpenSub;
     g('day-btn').textContent=t.closeDay;
     g('day-btn').className='day-btn close-btn';
   } else {
     g('day-card').className='day-card day-closed';
-    g('day-title').textContent=t.dayClosed;
+    g('day-title').textContent=t.dayClosed+(loc?' · '+loc.name:'');
     g('day-sub').textContent=t.dayClosedSub;
     g('day-btn').textContent=t.openDay;
     g('day-btn').className='day-btn open-btn';
   }
 }
+function toggleDayForLoc(locId, isOpen){
+  if(isOpen){ openCDModal(locId); }
+  else { api('/api/day/open',{method:'POST',body:{location_id:locId}}).then(function(){load()}).catch(function(){toast(T[lang].errServer)}); }
+}
 function toggleDay(){
+  var loc=_activeLoc();
+  if(!loc){toast(T[lang].noLocation||'Select a location');return;}
   if(!dayActive){
-    api('/api/day/open',{method:'POST'}).then(function(){load()}).catch(function(){toast(T[lang].errServer)});
+    api('/api/day/open',{method:'POST',body:{location_id:loc.id}}).then(function(){load()}).catch(function(){toast(T[lang].errServer)});
   } else {
-    openCDModal();
+    openCDModal(loc.id);
   }
 }
-function openCDModal(){
+var closingLocId=null;
+function openCDModal(locId){
+  closingLocId=locId;
   var t=T[lang];
   g('cd-title').textContent=t.closeDayTitle;
   g('cd-sub').textContent=t.closeDaySub;
   g('cd-confirm').textContent=t.closeDayBtn;
   g('cd-cancel').textContent=t.cancelBtn;
-  var active=workers.filter(function(w){return w.working});
+  var active=workers.filter(function(w){return w.working&&w.current_location_id===locId});
   var now=Date.now();
   var html='';
   if(!active.length){
@@ -854,7 +896,7 @@ function openCDModal(){
 function closeCDModal(){g('close-day-modal').classList.remove('open')}
 async function confirmCloseDay(){
   var t=T[lang];
-  var active=workers.filter(function(w){return w.working});
+  var active=workers.filter(function(w){return w.working&&w.current_location_id===closingLocId});
   var otApproved=[];
   for(var i=0;i<active.length;i++){
     var cb=g('cd-ot-'+active[i].id);
@@ -862,7 +904,7 @@ async function confirmCloseDay(){
   }
   closeCDModal();
   try{
-    await api('/api/day/close',{method:'POST',body:{overtime_approved:otApproved}});
+    await api('/api/day/close',{method:'POST',body:{location_id:closingLocId,overtime_approved:otApproved}});
     load();
   } catch(e){toast(t.errServer)}
 }

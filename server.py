@@ -70,6 +70,9 @@ def _migrate(db):
         db.execute('ALTER TABLE workers ADD COLUMN current_location_id TEXT')
     if 'note' not in wc:
         db.execute('ALTER TABLE workers ADD COLUMN note TEXT DEFAULT ""')
+    lcc = cols('locations')
+    if 'day_active' not in lcc:
+        db.execute('ALTER TABLE locations ADD COLUMN day_active INTEGER DEFAULT 0')
 
 def uid():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
@@ -405,16 +408,16 @@ def clock(wid):
         now = int(time.time() * 1000)
         shift_ms = float(get_setting('shift_hours') or 8) * 3600000
         if not w['working']:
-            if get_setting('day_active') != '1':
+            location_id = (request.json or {}).get('location_id')
+            if not location_id:
                 return jsonify({'error': 'day_not_active'}), 403
-            location_id   = (request.json or {}).get('location_id')
-            location_name = None
-            manager_name  = w['manager']
-            if location_id:
-                loc = db.execute('SELECT l.name, m.username FROM locations l LEFT JOIN managers m ON m.location_id=l.id WHERE l.id=?', (location_id,)).fetchone()
-                if loc:
-                    location_name = loc['name']
-                    if loc['username']: manager_name = loc['username']
+            loc = db.execute(
+                'SELECT l.name, l.day_active, m.username FROM locations l LEFT JOIN managers m ON m.location_id=l.id WHERE l.id=?',
+                (location_id,)).fetchone()
+            if not loc or not loc['day_active']:
+                return jsonify({'error': 'day_not_active'}), 403
+            location_name = loc['name']
+            manager_name  = loc['username'] if loc['username'] else w['manager']
             db.execute('UPDATE workers SET working=1, clock_start=?, current_location_id=? WHERE id=?',
                        (now, location_id, wid))
             db.execute('INSERT INTO logs VALUES (?,?,?,?,?,NULL,NULL,0,0,NULL,?,?,0)',
@@ -471,16 +474,29 @@ def force_clockout(wid):
 # ── Day open/close ─────────────────────────────────────────────────────────
 @app.route('/api/day/open', methods=['POST'])
 def day_open():
-    set_setting('day_active', '1')
+    s, err = require_auth(request)
+    if err: return err
+    loc_id = (request.json or {}).get('location_id')
+    if not loc_id: return jsonify({'error': 'location_id required'}), 400
+    if not s['is_admin'] and s['location_id'] != loc_id:
+        return jsonify({'error': 'forbidden'}), 403
+    with get_db() as db:
+        db.execute('UPDATE locations SET day_active=1 WHERE id=?', (loc_id,))
     return jsonify({'ok': True})
 
 @app.route('/api/day/close', methods=['POST'])
 def day_close():
-    set_setting('day_active', '0')
+    s, err = require_auth(request)
+    if err: return err
     d = request.json or {}
+    loc_id = d.get('location_id')
+    if not loc_id: return jsonify({'error': 'location_id required'}), 400
+    if not s['is_admin'] and s['location_id'] != loc_id:
+        return jsonify({'error': 'forbidden'}), 403
     ot_approved_ids = set(d.get('overtime_approved', []))
     with get_db() as db:
-        active = db.execute('SELECT * FROM workers WHERE working=1').fetchall()
+        db.execute('UPDATE locations SET day_active=0 WHERE id=?', (loc_id,))
+        active = db.execute('SELECT * FROM workers WHERE working=1 AND current_location_id=?', (loc_id,)).fetchall()
         now = int(time.time() * 1000)
         shift_ms = float(get_setting('shift_hours') or 8) * 3600000
         for w in active:

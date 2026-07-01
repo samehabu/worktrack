@@ -47,6 +47,7 @@ def init_db():
             month INTEGER, year INTEGER, content TEXT, generated_at INTEGER)''')
         db.execute("INSERT OR IGNORE INTO settings VALUES ('day_active','0')")
         db.execute("INSERT OR IGNORE INTO settings VALUES ('shift_hours','8')")
+        db.execute("INSERT OR IGNORE INTO settings VALUES ('tracking_mode','hours')")
         # migrate existing tables
         _migrate(db)
         # default admin
@@ -610,6 +611,7 @@ def report():
         else:
             logs = db.execute('SELECT * FROM logs WHERE clock_out IS NOT NULL').fetchall()
         worker_notes = {r['id']: r['note'] or '' for r in db.execute('SELECT id, note FROM workers').fetchall()}
+    tracking_mode = get_setting('tracking_mode') or 'hours'
     result = {}
     for l in [dict(r) for r in logs]:
         d = datetime.datetime.fromtimestamp(l['clock_in'] / 1000)
@@ -619,11 +621,13 @@ def report():
             result[wid] = {'name': l['worker_name'], 'manager': l['manager'],
                            'location': l.get('location_name') or '—',
                            'note': worker_notes.get(wid, ''),
-                           'total_ms': 0, 'sessions': 0, 'overtime_sessions': 0}
+                           'total_ms': 0, 'sessions': 0, 'overtime_sessions': 0,
+                           'tracking_mode': tracking_mode}
         result[wid]['total_ms']          += l['duration_ms'] or 0
         result[wid]['sessions']          += 1
         result[wid]['overtime_sessions'] += 1 if l['overtime'] else 0
-    return jsonify(sorted(result.values(), key=lambda x: -x['total_ms']))
+    key = (lambda x: -x['sessions']) if tracking_mode == 'days' else (lambda x: -x['total_ms'])
+    return jsonify(sorted(result.values(), key=key))
 
 # ── AI Reports ────────────────────────────────────────────────────────────
 MONTH_NAMES = {

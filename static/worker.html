@@ -143,6 +143,7 @@ const T = {
     waitingSub:"The manager has not opened the workday yet.<br>Please wait.",
     overtimeMsg:"⚠️ You are working overtime!",
     otSessionActive:"⏱ Overtime session active — approved by manager",
+    dayRecorded:"Day recorded",dayLbl:"day",
     errServer:"⚠️ Cannot reach server. Make sure the server is running.",
     toastIn:"Clocked in ✓", toastOut:"Clocked out ✓"
   },
@@ -156,6 +157,7 @@ const T = {
     waitingSub:"لم يفتح المدير يوم العمل بعد.<br>الرجاء الانتظار.",
     overtimeMsg:"⚠️ أنت تعمل إضافيًا!",
     otSessionActive:"⏱ جلسة وقت إضافي نشطة — موافقة من المدير",
+    dayRecorded:"تم تسجيل اليوم",dayLbl:"يوم",
     errServer:"⚠️ لا يمكن الوصول إلى الخادم.",
     toastIn:"تم تسجيل الدخول ✓", toastOut:"تم تسجيل الخروج ✓"
   },
@@ -169,6 +171,7 @@ const T = {
     waitingSub:"המנהל עדיין לא פתח את יום העבודה.<br>אנא המתן.",
     overtimeMsg:"⚠️ אתה עובד שעות נוספות!",
     otSessionActive:"⏱ משמרת שעות נוספות פעילה — אושרה על ידי המנהל",
+    dayRecorded:"היום נרשם",dayLbl:"יום",
     errServer:"⚠️ לא ניתן להגיע לשרת.",
     toastIn:"נרשמת בהצלחה ✓", toastOut:"יצאת בהצלחה ✓"
   }
@@ -178,7 +181,7 @@ let lang     = localStorage.getItem('wt_lang') || 'he';
 let workers  = [], locations = [];
 let selId    = localStorage.getItem('wt_wid') || '';
 let selLocId = localStorage.getItem('wt_loc') || '';
-let interval = null, dayActive = false, shiftMs = 8*3600000;
+let interval = null, dayActive = false, shiftMs = 8*3600000, trackingMode = 'hours';
 
 function setLang(l){
   lang=l; localStorage.setItem('wt_lang',l);
@@ -247,6 +250,7 @@ async function load(){
     const settings = await sr.json();
     locations = await lr.json();
     shiftMs   = parseFloat(settings.shift_hours||8)*3600000;
+    trackingMode = settings.tracking_mode||'hours';
     // dayActive is now per-location — computed in render() from locations array
     hideErr();
     // rebuild dropdown
@@ -324,26 +328,32 @@ function render(){
   const otBanner=document.getElementById('ot-banner');
 
   if(w.working&&w.clock_start){
-    te.className='timer green'; lb.textContent=t.currentShift;
     cb.textContent=t.clockOut; cb.className='clock-btn out';
-    // Show overtime session banner if manager activated it
-    if(w.overtime_active){
-      otBanner.innerHTML=t.otSessionActive||'⏱ Overtime session active';
-      otBanner.classList.add('show');
-      otBanner.style.background='#fef3c7';
-      otBanner.style.borderColor='#fde68a';
-      otBanner.style.color='#d97706';
-    }
-    function tick(){
-      const elapsed=Date.now()-w.clock_start;
-      te.textContent=hms(elapsed);
-      document.getElementById('today-val').textContent=fmt(elapsed);
-      if(!w.overtime_active){
-        if(elapsed>shiftMs){otBanner.innerHTML=t.overtimeMsg;otBanner.classList.add('show');otBanner.style.background='';otBanner.style.borderColor='';otBanner.style.color='';}
-        else otBanner.classList.remove('show');
+    if(trackingMode==='days'){
+      te.className='timer green'; te.textContent='✓';
+      lb.textContent=t.dayRecorded||'Day recorded';
+      document.getElementById('today-val').textContent='1 '+(t.dayLbl||'day');
+      otBanner.classList.remove('show');
+    } else {
+      te.className='timer green'; lb.textContent=t.currentShift;
+      if(w.overtime_active){
+        otBanner.innerHTML=t.otSessionActive||'⏱ Overtime session active';
+        otBanner.classList.add('show');
+        otBanner.style.background='#fef3c7';
+        otBanner.style.borderColor='#fde68a';
+        otBanner.style.color='#d97706';
       }
+      function tick(){
+        const elapsed=Date.now()-w.clock_start;
+        te.textContent=hms(elapsed);
+        document.getElementById('today-val').textContent=fmt(elapsed);
+        if(!w.overtime_active){
+          if(elapsed>shiftMs){otBanner.innerHTML=t.overtimeMsg;otBanner.classList.add('show');otBanner.style.background='';otBanner.style.borderColor='';otBanner.style.color='';}
+          else otBanner.classList.remove('show');
+        }
+      }
+      tick(); interval=setInterval(tick,1000);
     }
-    tick(); interval=setInterval(tick,1000);
   } else {
     te.className='timer grey'; te.textContent='00:00:00';
     lb.textContent=t.notClockedIn; cb.textContent=t.clockIn; cb.className='clock-btn in';

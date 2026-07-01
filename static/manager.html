@@ -233,6 +233,11 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
           <span id="lbl-hrs">hrs</span>
           <button class="shift-save" id="shift-save" onclick="saveShift()">Save</button>
         </div>
+        <div class="shift-row" style="margin-top:8px">
+          <span id="lbl-tracking-mode">Tracking:</span>
+          <button id="track-hours-btn" onclick="saveTrackingMode('hours')" class="shift-save" style="background:#4f46e5">Hours</button>
+          <button id="track-days-btn" onclick="saveTrackingMode('days')" class="shift-save" style="background:#e2e8f0;color:#64748b">Days</button>
+        </div>
       </div>
       <button class="day-btn" id="day-btn" onclick="toggleDay()">—</button>
     </div>
@@ -490,6 +495,8 @@ var T = {
     errNeedIn:'Clock-in time required.',errOrder:'Clock-out must be after clock-in.',
     workingLbl:'Working',offLbl:'Off',overtimeLbl:'Overtime',managerLbl:'Manager',
     otSessionOn:'OT Session ON',otSessionOff:'Start OT Session',
+    trackingMode:'Tracking Mode',trackHours:'Hours',trackDays:'Days',
+    daysByWorker:'Days by Worker',daysLbl:'days',dayLbl:'day',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
   },
   ar:{
@@ -540,6 +547,8 @@ var T = {
     errNeedIn:'وقت الدخول مطلوب.',errOrder:'يجب أن يكون وقت الخروج بعد الدخول.',
     workingLbl:'يعمل',offLbl:'غائب',overtimeLbl:'وقت إضافي',managerLbl:'المدير',
     otSessionOn:'وقت إضافي نشط',otSessionOff:'بدء وقت إضافي',
+    trackingMode:'نمط التتبع',trackHours:'ساعات',trackDays:'أيام',
+    daysByWorker:'الأيام حسب العامل',daysLbl:'أيام',dayLbl:'يوم',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
   },
   he:{
@@ -590,6 +599,8 @@ var T = {
     errNeedIn:'שעת כניסה נדרשת.',errOrder:'שעת יציאה חייבת להיות אחרי הכניסה.',
     workingLbl:'עובד',offLbl:'לא נוכח',overtimeLbl:'שעות נוספות',managerLbl:'מנהל',
     otSessionOn:'שעות נוספות פעיל',otSessionOff:'התחל שעות נוספות',
+    trackingMode:'מצב מעקב',trackHours:'שעות',trackDays:'ימים',
+    daysByWorker:'ימים לפי עובד',daysLbl:'ימים',dayLbl:'יום',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
   }
 };
@@ -599,7 +610,7 @@ var lang = localStorage.getItem('wt_lang') || 'he';
 var token = localStorage.getItem('wt_token') || '';
 var currentUser = JSON.parse(localStorage.getItem('wt_user') || 'null');
 var workers = [], allLogs = [], locations = [], managers = [];
-var dayActive = false, shiftMs = 8*3600000;
+var dayActive = false, shiftMs = 8*3600000, trackingMode = 'hours';
 var logsOpen = false, repOpen = false, repInit = false;
 var secOpen = false, accsOpen = false, locPanelOpen = false;
 var activeLocId = null;
@@ -747,6 +758,7 @@ function load(){
   ]).then(function(results){
     workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];
     shiftMs=parseFloat(settings.shift_hours||8)*3600000;
+    trackingMode=settings.tracking_mode||'hours';
     // dayActive is now per-location — computed in renderDayCard from locations array
     g('shift-input').value=settings.shift_hours||8;
     hideErr();
@@ -809,6 +821,7 @@ function _activeLoc(){
 }
 function renderDayCard(){
   var t=T[lang];
+  renderTrackingButtons();
   g('day-lbl').textContent=t.dayClosedLbl;
   var loc=_activeLoc();
   if(!loc){
@@ -917,6 +930,23 @@ async function confirmCloseDay(){
 function saveShift(){
   var v=parseFloat(g('shift-input').value)||8;
   api('/api/settings',{method:'POST',body:{shift_hours:v}}).then(function(){load()}).catch(function(){});
+}
+function saveTrackingMode(mode){
+  api('/api/settings',{method:'POST',body:{tracking_mode:mode}}).then(function(){load()}).catch(function(){});
+}
+function renderTrackingButtons(){
+  var t=T[lang];
+  var hBtn=g('track-hours-btn'), dBtn=g('track-days-btn');
+  if(!hBtn||!dBtn) return;
+  hBtn.textContent=t.trackHours;
+  dBtn.textContent=t.trackDays;
+  if(trackingMode==='days'){
+    hBtn.style.background='#e2e8f0'; hBtn.style.color='#64748b';
+    dBtn.style.background='#4f46e5'; dBtn.style.color='#fff';
+  } else {
+    hBtn.style.background='#4f46e5'; hBtn.style.color='#fff';
+    dBtn.style.background='#e2e8f0'; dBtn.style.color='#64748b';
+  }
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────
@@ -1141,17 +1171,25 @@ async function buildReport(){
     var data=await(await fetch('/api/report?month='+rm.value+'&year='+ry.value+locParam)).json();
     var body=g('rep-body');
     if(!data.length){body.innerHTML='<div style="text-align:center;color:#cbd5e1;padding:28px;font-size:.88rem">'+t.noReport+' '+t.MONTHS[rm.value-1]+' '+ry.value+'.</div>';return}
+    var isDays=trackingMode==='days';
+    g('lbl-hours').textContent=isDays?t.daysByWorker:t.hoursByWorker;
     var html='';
     for(var i=0;i<data.length;i++){
       var d=data[i];
-      var otTxt=d.overtime_sessions?' · '+d.overtime_sessions+' '+t.overtimeSessions:'';
+      var otTxt=(!isDays&&d.overtime_sessions)?' · '+d.overtime_sessions+' '+t.overtimeSessions:'';
       var noteHtml=d.note?('<div style="font-size:.75rem;color:#64748b;font-style:italic;margin-top:3px">📝 '+d.note+'</div>'):'';
+      var rightVal=isDays
+        ?(d.sessions+' '+(d.sessions===1?t.dayLbl:t.daysLbl))
+        :fmt(d.total_ms);
+      var subLine=isDays
+        ?(t.managerLbl+': '+d.manager)
+        :(t.managerLbl+': '+d.manager+' · '+d.sessions+' '+(d.sessions!==1?t.sessions:t.session)+otTxt);
       html+=('<div class="rep-row">'
         +'<div class="av" style="background:'+clr(d.name)+';width:38px;height:38px;font-size:.82rem;flex-shrink:0">'+ini(d.name)+'</div>'
         +'<div style="flex:1;min-width:0"><div class="rn">'+d.name+'</div>'
-        +'<div class="rm2">'+t.managerLbl+': '+d.manager+' · '+d.sessions+' '+(d.sessions!==1?t.sessions:t.session)+otTxt+'</div>'
+        +'<div class="rm2">'+subLine+'</div>'
         +noteHtml+'</div>'
-        +'<div class="rh">'+fmt(d.total_ms)+'</div></div>');
+        +'<div class="rh">'+rightVal+'</div></div>');
     }
     body.innerHTML=html;
   } catch(e){g('rep-body').innerHTML='<div style="color:#ef4444;padding:16px">'+T[lang].errServer+'</div>'}

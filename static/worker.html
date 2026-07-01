@@ -277,7 +277,11 @@ function render(){
   var selLoc = locations.find(function(l){return l.id===selLocId});
   dayActive = selLoc ? !!selLoc.day_active : false;
 
-  if(selLocId && !dayActive){
+  // If this worker is in an overtime session, skip the waiting screen
+  var preW = workers.find(function(w){return w.id===selId});
+  var workerInOT = preW && preW.working && preW.overtime_active;
+
+  if(selLocId && !dayActive && !workerInOT){
     waitCard.style.display='block'; locCard.classList.add('show');
     pickCard.classList.remove('show'); statusCard.classList.remove('show');
     todayCard.classList.remove('show'); clearInterval(interval);

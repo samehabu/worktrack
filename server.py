@@ -522,7 +522,8 @@ def day_close():
     ot_approved_ids = set(d.get('overtime_approved', []))
     with get_db() as db:
         db.execute('UPDATE locations SET day_active=0 WHERE id=?', (loc_id,))
-        active = db.execute('SELECT * FROM workers WHERE working=1 AND current_location_id=?', (loc_id,)).fetchall()
+        # Workers with overtime_active stay clocked in — manager closes them manually
+        active = db.execute('SELECT * FROM workers WHERE working=1 AND current_location_id=? AND overtime_active=0', (loc_id,)).fetchall()
         now = int(time.time() * 1000)
         shift_ms = float(get_setting('shift_hours') or 8) * 3600000
         for w in active:

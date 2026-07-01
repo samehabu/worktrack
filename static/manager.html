@@ -795,7 +795,10 @@ function setActiveLoc(id){
 }
 function visibleWorkers(){
   if(!activeLocId) return workers;
-  return workers.filter(function(w){return w.current_location_id===activeLocId||(!w.working)});
+  // Always include overtime workers so manager can stop them after day closes
+  return workers.filter(function(w){
+    return w.current_location_id===activeLocId||(!w.working)||(w.working&&w.overtime_active);
+  });
 }
 
 // ── Day Card ──────────────────────────────────────────────────────────────

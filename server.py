@@ -30,7 +30,7 @@ def init_db():
             id TEXT PRIMARY KEY, name TEXT, manager TEXT,
             working INTEGER DEFAULT 0, clock_start INTEGER,
             current_location_id TEXT, note TEXT DEFAULT '',
-            overtime_active INTEGER DEFAULT 0)''')
+            overtime_active INTEGER DEFAULT 0, location_id TEXT)''')
         db.execute('''CREATE TABLE IF NOT EXISTS logs (
             id TEXT PRIMARY KEY, worker_id TEXT, worker_name TEXT,
             manager TEXT, clock_in INTEGER, clock_out INTEGER,
@@ -74,6 +74,8 @@ def _migrate(db):
         db.execute('ALTER TABLE workers ADD COLUMN note TEXT DEFAULT ""')
     if 'overtime_active' not in wc:
         db.execute('ALTER TABLE workers ADD COLUMN overtime_active INTEGER DEFAULT 0')
+    if 'location_id' not in wc:
+        db.execute('ALTER TABLE workers ADD COLUMN location_id TEXT')
     lcc = cols('locations')
     if 'day_active' not in lcc:
         db.execute('ALTER TABLE locations ADD COLUMN day_active INTEGER DEFAULT 0')
@@ -380,22 +382,36 @@ def update_settings():
 # ── Workers ────────────────────────────────────────────────────────────────
 @app.route('/api/workers', methods=['GET'])
 def get_workers():
+    s = auth(request)
     with get_db() as db:
-        rows = db.execute('SELECT * FROM workers ORDER BY name').fetchall()
+        if s and not s['is_admin'] and s['location_id']:
+            rows = db.execute('SELECT * FROM workers WHERE location_id=? ORDER BY name', (s['location_id'],)).fetchall()
+        else:
+            rows = db.execute('SELECT * FROM workers ORDER BY name').fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.route('/api/workers', methods=['POST', 'OPTIONS'])
 def add_worker():
     if request.method == 'OPTIONS': return '', 200
+    s = auth(request)
     d = request.json or {}
-    name    = (d.get('name') or '').strip()
+    name = (d.get('name') or '').strip()
     if not name:
         return jsonify({'error': 'Name required'}), 400
+    # location: explicit (admin) or from session
+    loc_id = d.get('location_id') or (s['location_id'] if s else None)
+    # manager name: name of the manager at this location
+    mgr_name = ''
+    if loc_id:
+        with get_db() as db:
+            m = db.execute('SELECT username FROM managers WHERE location_id=?', (loc_id,)).fetchone()
+            if m: mgr_name = m['username']
     wid = uid()
     with get_db() as db:
-        db.execute('INSERT INTO workers (id,name,manager,working,clock_start,current_location_id,note,overtime_active) VALUES (?,?,?,0,NULL,NULL,?,0)', (wid, name, '', ''))
-    return jsonify({'id': wid, 'name': name, 'manager': '', 'working': 0,
-                    'clock_start': None, 'current_location_id': None})
+        db.execute('INSERT INTO workers (id,name,manager,working,clock_start,current_location_id,note,overtime_active,location_id) VALUES (?,?,?,0,NULL,NULL,?,0,?)',
+                   (wid, name, mgr_name, '', loc_id))
+    return jsonify({'id': wid, 'name': name, 'manager': mgr_name, 'working': 0,
+                    'clock_start': None, 'current_location_id': None, 'location_id': loc_id})
 
 @app.route('/api/workers/<wid>', methods=['DELETE', 'OPTIONS'])
 def delete_worker(wid):
@@ -795,7 +811,9 @@ def icons(f): return send_from_directory('static/icons', f)
 
 @app.route('/')
 @app.route('/worker')
-def worker_page(): return send_from_directory('static', 'worker.html')
+def worker_page():
+    from flask import redirect
+    return redirect('/manager')
 
 @app.route('/manager')
 def manager_page(): return send_from_directory('static', 'manager.html')

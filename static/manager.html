@@ -255,6 +255,7 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
       <div class="card-label" id="lbl-add">Add Worker</div>
       <div class="add-row">
         <input type="text" id="iname" autocomplete="off"/>
+        <select id="worker-loc-sel" style="display:none;flex:1;min-width:110px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;background:#fff"></select>
         <button class="btn-add" id="add-btn" onclick="addWorker()">+ <span id="lbl-add-btn">Add</span></button>
       </div>
     </div>
@@ -497,6 +498,8 @@ var T = {
     otSessionOn:'OT Session ON',otSessionOff:'Start OT Session',
     trackingMode:'Tracking Mode',trackHours:'Hours',trackDays:'Days',
     daysByWorker:'Days by Worker',daysLbl:'days',dayLbl:'day',
+    clockInBtn:'Clock In',clockOutBtn:'Clock Out',workerLocPh:'— Location —',
+    noLocationWorker:'No location assigned',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
   },
   ar:{
@@ -549,6 +552,8 @@ var T = {
     otSessionOn:'وقت إضافي نشط',otSessionOff:'بدء وقت إضافي',
     trackingMode:'نمط التتبع',trackHours:'ساعات',trackDays:'أيام',
     daysByWorker:'الأيام حسب العامل',daysLbl:'أيام',dayLbl:'يوم',
+    clockInBtn:'تسجيل دخول',clockOutBtn:'تسجيل خروج',workerLocPh:'— الموقع —',
+    noLocationWorker:'لا يوجد موقع محدد',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
   },
   he:{
@@ -601,6 +606,8 @@ var T = {
     otSessionOn:'שעות נוספות פעיל',otSessionOff:'התחל שעות נוספות',
     trackingMode:'מצב מעקב',trackHours:'שעות',trackDays:'ימים',
     daysByWorker:'ימים לפי עובד',daysLbl:'ימים',dayLbl:'יום',
+    clockInBtn:'כניסה',clockOutBtn:'יציאה',workerLocPh:'— מיקום —',
+    noLocationWorker:'לא הוגדר מיקום',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
   }
 };
@@ -787,6 +794,15 @@ function renderLocUI(){
       html+='<button class="loc-tab'+(activeLocId===l.id?' active':'')+'" onclick="setActiveLoc(\''+l.id+'\')">'+l.name+'</button>';
     }
     tabs.innerHTML=html;
+    // Show location picker in add-worker form for admin
+    var locSel=g('worker-loc-sel');
+    locSel.style.display='';
+    var selOpts='<option value="">'+t.workerLocPh+'</option>';
+    for(var i=0;i<locations.length;i++){
+      var sel=(activeLocId&&locations[i].id===activeLocId)?' selected':'';
+      selOpts+='<option value="'+locations[i].id+'"'+sel+'>'+locations[i].name+'</option>';
+    }
+    locSel.innerHTML=selOpts;
   } else {
     g('loc-tabs').style.display='none';
     var loc=activeLocId?locations.find(function(l){return l.id===activeLocId}):null;
@@ -806,11 +822,9 @@ function setActiveLoc(id){
   if(repOpen) buildReport();
 }
 function visibleWorkers(){
-  if(!activeLocId) return workers;
-  // Always include overtime workers so manager can stop them after day closes
-  return workers.filter(function(w){
-    return w.current_location_id===activeLocId||(!w.working)||(w.working&&w.overtime_active);
-  });
+  if(!currentUser.is_admin) return workers; // server already filtered by location
+  if(!activeLocId) return workers; // admin "All Sites"
+  return workers.filter(function(w){ return w.location_id===activeLocId; });
 }
 
 // ── Day Card ──────────────────────────────────────────────────────────────
@@ -989,22 +1003,30 @@ function renderList(){
       timerHtml='<div class="wtimer ltimer'+(isOT?' ot':'')+'" data-s="'+w.clock_start+'">'+fmt(ms)+'</div>';
     }
     var noteHtml=w.note?('<div style="font-size:.75rem;color:#64748b;margin-top:5px;font-style:italic;white-space:pre-wrap">📝 '+w.note+'</div>'):'';
-    var forceHtml='';
+    var clockBtnHtml='';
     var otBtnHtml='';
     if(w.working){
-      forceHtml='<button class="forceout-btn" onclick="forceOut(\''+w.id+'\',\''+w.name+'\')">'+t.forceOut+'</button>';
+      clockBtnHtml='<button class="forceout-btn" style="background:#fee2e2;color:#ef4444" onclick="managerClock(\''+w.id+'\')">'+t.clockOutBtn+'</button>';
       var canOT=currentUser.is_admin||(currentUser.location_id&&currentUser.location_id===w.current_location_id);
       if(canOT){
         var otOn=!!w.overtime_active;
         otBtnHtml='<button class="forceout-btn" style="background:'+(otOn?'#fef3c7;color:#d97706;border:1.5px solid #fde68a':'#f1f5f9;color:#64748b')+'" onclick="toggleOTSession(\''+w.id+'\')">⏱ '+(otOn?t.otSessionOn:t.otSessionOff)+'</button>';
       }
+    } else {
+      var workerLoc=w.location_id||currentUser.location_id||activeLocId;
+      clockBtnHtml='<button class="forceout-btn" style="background:#dcfce7;color:#16a34a" onclick="managerClock(\''+w.id+'\',\''+workerLoc+'\')">'+t.clockInBtn+'</button>';
+    }
+    var locLabel='';
+    if(currentUser.is_admin&&!activeLocId){
+      var wloc2=locations.find(function(l){return l.id===w.location_id});
+      locLabel='<span style="font-size:.72rem;background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:999px;margin-inline-start:6px">'+(wloc2?wloc2.name:t.noLocationWorker)+'</span>';
     }
     html+=('<div class="'+cls+'">'
       +'<div class="av" style="background:'+clr(w.name)+'">'+ini(w.name)+'</div>'
-      +'<div class="winfo"><div class="wname">'+w.name+'</div>'
+      +'<div class="winfo"><div class="wname">'+w.name+locLabel+'</div>'
       +'<div class="wsub">'+sub+'</div>'
       +timerHtml+noteHtml+'</div>'
-      +'<div class="wactions">'+forceHtml+otBtnHtml
+      +'<div class="wactions">'+clockBtnHtml+otBtnHtml
       +'<button class="del-btn" style="color:#94a3b8;font-size:.9rem" onclick="openNoteModal(\''+w.id+'\')">📝</button>'
       +'<button class="del-btn" onclick="removeWorker(\''+w.id+'\',\''+w.name+'\')">✕</button>'
       +'</div></div>');
@@ -1015,14 +1037,28 @@ async function addWorker(){
   var t=T[lang];
   var name=g('iname').value.trim();
   if(!name) return;
+  var locSel=g('worker-loc-sel');
+  var locId=locSel.style.display!=='none'?locSel.value:(currentUser.location_id||null);
+  if(!locId){toast(t.noLocationWorker);return;}
   var btn=g('add-btn'); btn.disabled=true;
   try{
-    var r=await api('/api/workers',{method:'POST',body:{name:name}});
+    var r=await api('/api/workers',{method:'POST',body:{name:name,location_id:locId}});
     if(!r.ok) throw new Error();
     g('iname').value='';
     toast(name+' '+t.added); await load();
   } catch(e){toast(t.errServer);}
   btn.disabled=false;
+}
+async function managerClock(wid, locId){
+  var t=T[lang];
+  try{
+    var body=locId?{location_id:locId}:{};
+    var r=await api('/api/workers/'+wid+'/clock',{method:'POST',body:body});
+    var d=await r.json();
+    if(d.error==='day_not_active'){toast(t.dayClosedLbl||'Day not open');return;}
+    if(!r.ok) throw new Error();
+    toast(t.saved); await load();
+  }catch(e){toast(t.errServer);}
 }
 async function removeWorker(id,name){
   if(!confirm(T[lang].confirmRemove+' '+name+'?')) return;

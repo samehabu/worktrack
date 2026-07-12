@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, redirect
 import sqlite3, time, os, random, string, datetime, urllib.request, urllib.parse, json, hashlib, threading
 
 app = Flask(__name__, static_folder='static')
@@ -812,7 +812,6 @@ def icons(f): return send_from_directory('static/icons', f)
 @app.route('/')
 @app.route('/worker')
 def worker_page():
-    from flask import redirect
     return redirect('/manager')
 
 @app.route('/manager')

@@ -1415,8 +1415,13 @@ function downloadReportExcel(){
   var isDays=trackingMode==='days';
   var monthName=t.MONTHS[lastReportMonth-1]+' '+lastReportYear;
   var rows=[['WorkTrack — '+monthName],[]];
-  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',t.wageCol||'Wage']);
-  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',t.wageCol||'Wage']);
+  var wageHdr=t.wageCol||'Wage (₪)';
+  var dailyHdr=t.wageLbl||'Daily Wage';
+  var bonHdr=t.bonusLbl||'Plus / Bonus';
+  var dedHdr=t.deductionLbl||'Minus / Deduction';
+  var totalHdr=t.totalWage||'Total Wage';
+  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr]);
+  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr]);
   for(var i=0;i<lastReportData.length;i++){
     var d=lastReportData[i];
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
@@ -1424,10 +1429,19 @@ function downloadReportExcel(){
     if(d.locations&&d.locations.length){
       locSummary=d.locations.map(function(l){return l.name+' ('+l.days+'d)'}).join(' | ');
     }
-    var wageVal=d.wage_per_day?'₪'+d.total_wage+(d.deductions?' (-₪'+d.deductions+')':'')+' ('+d.sessions+' × ₪'+d.wage_per_day+')':'';
-    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,wageVal]);
-    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,wageVal]);
-    if(d.note) rows.push(['  📝 '+d.note,'','','','','','']);
+    var exDed=d.deductions||0;
+    var exGross=d.wage_per_day?Math.round(d.sessions*d.wage_per_day*100)/100:0;
+    var exBon=d.wage_per_day?Math.round(((d.total_wage||0)-exGross+exDed)*100)/100:0;
+    var dailyWage=d.wage_per_day?'₪'+d.wage_per_day:'';
+    var bonVal=exBon>0?'+₪'+exBon:'';
+    var dedVal=exDed>0?'-₪'+exDed:'';
+    var totalVal=d.wage_per_day?'₪'+d.total_wage:'';
+    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal]);
+    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal]);
+    if(d.note){
+      var noteLines=d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l});
+      noteLines.forEach(function(line){rows.push(['  📝 '+line,'','','','','','','','','']);});
+    }
   }
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(rows);

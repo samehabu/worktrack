@@ -701,10 +701,19 @@ def report():
                            'location': l.get('location_name') or '—',
                            'note': worker_notes.get(wid, ''),
                            'total_ms': 0, 'sessions': 0, 'overtime_sessions': 0,
-                           'tracking_mode': tracking_mode}
+                           'tracking_mode': tracking_mode,
+                           'locations': {}}
         result[wid]['total_ms']          += l['duration_ms'] or 0
         result[wid]['sessions']          += 1
         result[wid]['overtime_sessions'] += 1 if l['overtime'] else 0
+        loc_name = l.get('location_name') or '—'
+        locs = result[wid]['locations']
+        locs[loc_name] = locs.get(loc_name, 0) + 1
+    # convert locations dict to sorted list
+    for wid in result:
+        result[wid]['locations'] = sorted(
+            [{'name': k, 'days': v} for k, v in result[wid]['locations'].items()],
+            key=lambda x: -x['days'])
     key = (lambda x: -x['sessions']) if tracking_mode == 'days' else (lambda x: -x['total_ms'])
     return jsonify(sorted(result.values(), key=key))
 

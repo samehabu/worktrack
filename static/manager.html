@@ -842,7 +842,7 @@ function load(){
     api('/api/managers').then(function(r){return r.ok?r.json():[]}),
     api(rosterUrl).then(function(r){return r.ok?r.json():[]}),
     (currentUser&&currentUser.is_admin?api('/api/workers').then(function(r){return r.ok?r.json():[]}):Promise.resolve([])),
-    (!currentUser.is_admin&&currentUser.location_id?api('/api/roster/taken?date='+today).then(function(r){return r.ok?r.json():[]}):Promise.resolve([]))
+    (currentUser&&!currentUser.is_admin&&currentUser.location_id?api('/api/roster/taken?date='+today).then(function(r){return r.ok?r.json():[]}):Promise.resolve([]))
   ]).then(function(results){
     workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];
     rosterIds=results[4]; if(results[5].length) allWorkers=results[5];

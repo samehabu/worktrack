@@ -456,6 +456,27 @@ def clock(wid):
                            (now, dur, overtime, ot_approved, log['id']))
             return jsonify({'status': 'out'})
 
+@app.route('/api/workers/<wid>/location', methods=['POST', 'OPTIONS'])
+def change_worker_location(wid):
+    if request.method == 'OPTIONS': return '', 200
+    s, err = require_auth(request)
+    if err: return err
+    loc_id = (request.json or {}).get('location_id')
+    # update manager name to match new location's manager
+    mgr_name = ''
+    if loc_id:
+        with get_db() as db:
+            m = db.execute('SELECT username FROM managers WHERE location_id=?', (loc_id,)).fetchone()
+            if m: mgr_name = m['username']
+    with get_db() as db:
+        w = db.execute('SELECT * FROM workers WHERE id=?', (wid,)).fetchone()
+        if not w: return jsonify({'error': 'not found'}), 404
+        # only admin or the worker's current location manager can move them
+        if not s['is_admin'] and s['location_id'] != w['location_id']:
+            return jsonify({'error': 'forbidden'}), 403
+        db.execute('UPDATE workers SET location_id=?, manager=? WHERE id=?', (loc_id, mgr_name, wid))
+    return jsonify({'ok': True})
+
 @app.route('/api/workers/<wid>/overtime', methods=['POST', 'OPTIONS'])
 def toggle_overtime(wid):
     if request.method == 'OPTIONS': return '', 200

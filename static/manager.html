@@ -421,6 +421,19 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
   </div>
 </div>
 
+<!-- MOVE WORKER MODAL -->
+<div class="modal-overlay" id="move-worker-modal">
+  <div class="modal-box" style="max-width:340px">
+    <div class="modal-title" id="move-worker-title">Change Location</div>
+    <div style="font-size:.84rem;color:#64748b;margin-bottom:14px" id="move-worker-name"></div>
+    <select id="move-worker-loc-sel" style="width:100%;padding:11px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;background:#fff;outline:none"></select>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="move-cancel" onclick="g('move-worker-modal').classList.remove('open')">Cancel</button>
+      <button class="btn-save" id="move-save" onclick="saveWorkerLocation()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- CLOSE DAY MODAL -->
 <div class="modal-overlay" id="close-day-modal">
   <div class="modal-box">
@@ -512,7 +525,7 @@ var T = {
     trackingMode:'Tracking Mode',trackHours:'Hours',trackDays:'Days',
     daysByWorker:'Days by Worker',daysLbl:'days',dayLbl:'day',
     clockInBtn:'Clock In',clockOutBtn:'Clock Out',workerLocPh:'— Location —',
-    noLocationWorker:'No location assigned',
+    noLocationWorker:'No location assigned',changeLocation:'Change Location',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
   },
   ar:{
@@ -566,7 +579,7 @@ var T = {
     trackingMode:'نمط التتبع',trackHours:'ساعات',trackDays:'أيام',
     daysByWorker:'الأيام حسب العامل',daysLbl:'أيام',dayLbl:'يوم',
     clockInBtn:'تسجيل دخول',clockOutBtn:'تسجيل خروج',workerLocPh:'— الموقع —',
-    noLocationWorker:'لا يوجد موقع محدد',
+    noLocationWorker:'لا يوجد موقع محدد',changeLocation:'تغيير الموقع',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
   },
   he:{
@@ -620,7 +633,7 @@ var T = {
     trackingMode:'מצב מעקב',trackHours:'שעות',trackDays:'ימים',
     daysByWorker:'ימים לפי עובד',daysLbl:'ימים',dayLbl:'יום',
     clockInBtn:'כניסה',clockOutBtn:'יציאה',workerLocPh:'— מיקום —',
-    noLocationWorker:'לא הוגדר מיקום',
+    noLocationWorker:'לא הוגדר מיקום',changeLocation:'שנה מיקום',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
   }
 };
@@ -1058,6 +1071,7 @@ function renderList(){
       +timerHtml+noteHtml+'</div>'
       +'<div class="wactions">'+clockBtnHtml+otBtnHtml
       +'<button class="del-btn" style="color:#94a3b8;font-size:.9rem" onclick="openNoteModal(\''+w.id+'\')">📝</button>'
+      +(currentUser.is_admin?'<button class="del-btn" style="color:#94a3b8" onclick="openMoveWorkerModal(\''+w.id+'\',\''+w.name.replace(/'/g,"\\'")+(w.location_id?'\',\''+w.location_id:'')+'\'  )">📍</button>':'')
       +'<button class="del-btn" onclick="removeWorker(\''+w.id+'\',\''+w.name+'\')">✕</button>'
       +'</div></div>');
   }
@@ -1097,6 +1111,31 @@ async function removeWorker(id,name){
 async function forceOut(id,name){
   if(!confirm(T[lang].forceOut+' '+name+'?')) return;
   await api('/api/workers/'+id+'/forceout',{method:'POST'}); toast(name+' ✓'); await load();
+}
+var movingWorkerId=null;
+function openMoveWorkerModal(wid,wname,curLocId){
+  movingWorkerId=wid;
+  var t=T[lang];
+  g('move-worker-title').textContent=t.changeLocation||'Change Location';
+  g('move-worker-name').textContent=wname;
+  g('move-cancel').textContent=t.cancelBtn;
+  g('move-save').textContent=t.saveBtn;
+  var opts='<option value="">'+( t.noLocation||'No location')+'</option>';
+  for(var i=0;i<locations.length;i++){
+    opts+='<option value="'+locations[i].id+'"'+(locations[i].id===curLocId?' selected':'')+'>'+locations[i].name+'</option>';
+  }
+  g('move-worker-loc-sel').innerHTML=opts;
+  g('move-worker-modal').classList.add('open');
+}
+async function saveWorkerLocation(){
+  if(!movingWorkerId) return;
+  var locId=g('move-worker-loc-sel').value||null;
+  try{
+    var r=await api('/api/workers/'+movingWorkerId+'/location',{method:'POST',body:{location_id:locId}});
+    if(!r.ok) throw new Error();
+    g('move-worker-modal').classList.remove('open');
+    toast(T[lang].saved); await load();
+  }catch(e){toast(T[lang].errServer);}
 }
 async function toggleOTSession(wid){
   try{

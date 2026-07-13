@@ -426,11 +426,15 @@ def get_taken_workers():
     s, err = require_auth(request)
     if err: return err
     date = request.args.get('date', datetime.date.today().isoformat())
-    loc_id = s['location_id']
+    loc_id = s['location_id'] or ''
     with get_db() as db:
-        rows = db.execute(
-            'SELECT worker_id FROM daily_roster WHERE date=? AND location_id!=?',
-            (date, loc_id or '')).fetchall()
+        if loc_id:
+            rows = db.execute(
+                'SELECT worker_id FROM daily_roster WHERE date=? AND location_id!=?',
+                (date, loc_id)).fetchall()
+        else:
+            rows = db.execute(
+                'SELECT worker_id FROM daily_roster WHERE date=?', (date,)).fetchall()
     return jsonify([r['worker_id'] for r in rows])
 
 @app.route('/api/roster', methods=['POST', 'OPTIONS'])

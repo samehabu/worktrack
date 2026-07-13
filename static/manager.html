@@ -1439,8 +1439,8 @@ function downloadReportExcel(){
   var totalHdr=t.totalWage||'Total Wage';
   var notesHdr=t.noteTitle||'Notes';
   var locHdr=t.locationLbl||'Location';
-  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager',locHdr,t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
-  else rows.push([t.workers||'Worker',t.managerLbl||'Manager',locHdr,'Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
+  if(isDays) rows.push([t.workers||'Worker',locHdr,t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
+  else rows.push([t.workers||'Worker',locHdr,'Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
   for(var i=0;i<lastReportData.length;i++){
     var d=lastReportData[i];
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
@@ -1456,8 +1456,8 @@ function downloadReportExcel(){
     var dedVal=exDed>0?'-₪'+exDed:'';
     var totalVal=d.wage_per_day?'₪'+d.total_wage:'';
     var noteVal=d.note?d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l}).join(' | '):'';
-    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,noteVal,totalVal]);
-    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,noteVal,totalVal]);
+    if(isDays) rows.push([d.name,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,noteVal,totalVal]);
+    else rows.push([d.name,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,noteVal,totalVal]);
   }
   // totals row
   var exTotalWage=0, exTotalDays=0, exTotalHours=0;
@@ -1469,7 +1469,7 @@ function downloadReportExcel(){
   exTotalWage=Math.round(exTotalWage*100)/100;
   var exHrsTot=Math.floor(exTotalHours/3600000)+'h '+Math.floor(exTotalHours%3600000/60000)+'m';
   rows.push([]);
-  rows.push([t.totalWage||'Total Wage','','',isDays?exTotalDays:exHrsTot,'','','','','','₪'+exTotalWage]);
+  rows.push([t.totalWage||'Total Wage','',isDays?exTotalDays:exHrsTot,'','','','','','₪'+exTotalWage]);
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb,ws,'Report');
@@ -1502,7 +1502,6 @@ function downloadReportPDF(){
     var noteLines=d.note?d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l}):[];
     var noteCell=noteLines.length?noteLines.map(function(l){return '• '+l}).join('<br>'):'';
     rows+=('<tr><td style="padding:10px 12px;font-weight:700">'+d.name+'</td>'
-      +'<td style="padding:10px 12px;color:#64748b">'+d.manager+'</td>'
       +'<td style="padding:10px 12px">'+locTags+'</td>'
       +'<td style="padding:10px 12px;font-weight:800;color:#4f46e5;text-align:end">'+val+' '+ot+'</td>'
       +'<td style="padding:10px 12px;font-size:11px;color:#64748b">'+noteCell+'</td>'
@@ -1526,14 +1525,14 @@ function downloadReportPDF(){
         for(var pi=0;pi<lastReportData.length;pi++){pdfWageSum+=lastReportData[pi].total_wage||0;pdfDaysSum+=lastReportData[pi].sessions||0;pdfHrsSum+=lastReportData[pi].total_ms||0;}
         pdfWageSum=Math.round(pdfWageSum*100)/100;
         var pdfHrsTot=Math.floor(pdfHrsSum/3600000)+'h '+Math.floor(pdfHrsSum%3600000/60000)+'m';
-        rows+='<tr style="background:#f0fdf4;border-top:2px solid #86efac"><td colspan="3" style="padding:12px;font-weight:800;color:#15803d;font-size:14px">💰 '+(t.totalWage||'Total Wage')+'</td>'
+        rows+='<tr style="background:#f0fdf4;border-top:2px solid #86efac"><td colspan="2" style="padding:12px;font-weight:800;color:#15803d;font-size:14px">💰 '+(t.totalWage||'Total Wage')+'</td>'
           +'<td style="padding:12px;font-weight:800;color:#15803d;text-align:end">'+(isDays?pdfDaysSum+' '+(t.daysLbl||'d'):pdfHrsTot)+'</td>'
           +'<td></td>'
           +'<td style="padding:12px;font-weight:900;color:#15803d;font-size:15px;text-align:end">₪'+pdfWageSum.toLocaleString()+'</td></tr>';
         return '';
       })()
     +'<table><thead><tr>'
-    +'<td>'+(t.workers||'Worker')+'</td><td>'+(t.managerLbl||'Manager')+'</td><td>'+(t.locationLbl||'Location')+'</td>'
+    +'<td>'+(t.workers||'Worker')+'</td><td>'+(t.locationLbl||'Location')+'</td>'
     +'<td style="text-align:end">'+(isDays?(t.daysLbl||'Days'):'Hours')+'</td>'
     +'<td>'+(t.noteTitle||'Notes')+'</td>'
     +'<td style="text-align:end">'+(t.wageCol||'Wage')+'</td>'

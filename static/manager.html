@@ -159,6 +159,7 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
 #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a2e;color:#fff;padding:11px 26px;border-radius:999px;font-size:.9rem;font-weight:600;opacity:0;transition:all .2s;pointer-events:none;z-index:300;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1426,12 +1427,10 @@ function downloadReportExcel(){
     else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,wageVal]);
     if(d.note) rows.push(['  📝 '+d.note,'','','','','','']);
   }
-  var csv=rows.map(function(r){return r.map(function(c){return'"'+(c+'').replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
-  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url; a.download='report_'+lastReportMonth+'_'+lastReportYear+'.csv'; a.click();
-  URL.revokeObjectURL(url);
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,ws,'Report');
+  XLSX.writeFile(wb,'report_'+lastReportMonth+'_'+lastReportYear+'.xlsx');
 }
 function downloadReportPDF(){
   if(!lastReportData.length){toast(T[lang].noReport||'No data');return;}

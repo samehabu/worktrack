@@ -724,12 +724,17 @@ def report():
         loc_name = l.get('location_name') or '—'
         locs = result[wid]['locations']
         locs[loc_name] = locs.get(loc_name, 0) + 1
-    # convert locations dict to sorted list; compute total_wage
+    # convert locations dict to sorted list; compute total_wage with note deductions
+    import re as _re
     for wid in result:
         result[wid]['locations'] = sorted(
             [{'name': k, 'days': v} for k, v in result[wid]['locations'].items()],
             key=lambda x: -x['days'])
-        result[wid]['total_wage'] = round(result[wid]['sessions'] * result[wid]['wage_per_day'], 2)
+        gross = round(result[wid]['sessions'] * result[wid]['wage_per_day'], 2)
+        note = result[wid].get('note', '') or ''
+        deductions = sum(float(m) for m in _re.findall(r'-\s*(\d+(?:\.\d+)?)', note))
+        result[wid]['deductions'] = round(deductions, 2)
+        result[wid]['total_wage'] = round(gross - deductions, 2)
     key = (lambda x: -x['sessions']) if tracking_mode == 'days' else (lambda x: -x['total_ms'])
     return jsonify(sorted(result.values(), key=key))
 

@@ -1359,7 +1359,16 @@ async function buildReport(){
     for(var i=0;i<data.length;i++){
       var d=data[i];
       var otTxt=(!isDays&&d.overtime_sessions)?' · '+d.overtime_sessions+' '+t.overtimeSessions:'';
-      var noteHtml=d.note?('<div style="font-size:.75rem;color:#64748b;font-style:italic;margin-top:3px">📝 '+d.note+'</div>'):'';
+      var noteHtml='';
+      if(d.note){
+        var noteLines=d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l.length>0});
+        if(noteLines.length===1){
+          noteHtml='<div style="font-size:.75rem;color:#64748b;font-style:italic;margin-top:3px">📝 '+noteLines[0]+'</div>';
+        } else {
+          var pts=noteLines.map(function(l){return '<li style="margin-bottom:2px">'+l+'</li>'}).join('');
+          noteHtml='<div style="font-size:.75rem;color:#64748b;font-style:italic;margin-top:3px">📝<ul style="margin:2px 0 0 16px;padding:0">'+pts+'</ul></div>';
+        }
+      }
       var rightVal=isDays
         ?(d.sessions+' '+(d.sessions===1?t.dayLbl:t.daysLbl))
         :fmt(d.total_ms);

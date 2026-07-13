@@ -779,8 +779,9 @@ def delete_log(lid):
 # ── Report ─────────────────────────────────────────────────────────────────
 @app.route('/api/report')
 def report():
-    s = get_session()
-    if not s: return jsonify({'error': 'unauth'}), 401
+    s, err = require_auth(request)
+    if err: return err
+    if not s['is_admin']: return jsonify({'error': 'admin_only'}), 403
     month       = int(request.args.get('month', time.localtime().tm_mon))
     year        = int(request.args.get('year',  time.localtime().tm_year))
     location_id = request.args.get('location_id')

@@ -281,7 +281,8 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
     <div class="collapsible" id="logs-panel">
       <div id="logs-body"></div>
     </div>
-    <!-- Report panel -->
+    <!-- Report panel (admin only) -->
+    <div id="rep-wrap" style="display:none">
     <button class="panel-btn" onclick="toggleReport()">📊 <span id="lbl-report">Monthly Report</span></button>
     <div class="collapsible" id="rep-panel">
       <div class="rep-top">
@@ -294,6 +295,7 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
         <button class="shift-save" id="dl-pdf-btn" onclick="downloadReportPDF()" style="background:#dc2626;padding:7px 14px;border-radius:8px;font-size:.82rem">⬇ PDF</button>
       </div>
       <div id="rep-body"></div>
+    </div>
     </div>
     <!-- Locations (admin only) -->
     <div id="loc-wrap" style="display:none">
@@ -806,6 +808,7 @@ function enterApp(){
     g('loc-wrap').style.display='block';
     g('conflict-wrap').style.display='block';
     g('ai-rep-wrap').style.display='block';
+    g('rep-wrap').style.display='block';
     loadConflictAlerts();
     activeLocId=null;
   } else {
@@ -1381,7 +1384,7 @@ async function buildReport(){
   }
   try{
     var locParam='';
-    var data=await(await fetch('/api/report?month='+rm.value+'&year='+ry.value+locParam)).json();
+    var data=await(await api('/api/report?month='+rm.value+'&year='+ry.value+locParam)).json();
     var body=g('rep-body');
     if(!data.length){body.innerHTML='<div style="text-align:center;color:#cbd5e1;padding:28px;font-size:.88rem">'+t.noReport+' '+t.MONTHS[rm.value-1]+' '+ry.value+'.</div>';return}
     lastReportData=data; lastReportMonth=+rm.value; lastReportYear=+ry.value;

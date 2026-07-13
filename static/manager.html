@@ -1468,7 +1468,7 @@ function downloadReportExcel(){
   exTotalWage=Math.round(exTotalWage*100)/100;
   var exHrsTot=Math.floor(exTotalHours/3600000)+'h '+Math.floor(exTotalHours%3600000/60000)+'m';
   rows.push([]);
-  rows.push([t.totalWage||'Total Wage','','',isDays?exTotalDays:exHrsTot,'','','','','₪'+exTotalWage,'']);
+  rows.push([t.totalWage||'Total Wage','','',isDays?exTotalDays:exHrsTot,'','','','','','₪'+exTotalWage]);
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb,ws,'Report');

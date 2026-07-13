@@ -613,6 +613,47 @@ def change_worker_location(wid):
         db.execute('UPDATE workers SET location_id=?, manager=? WHERE id=?', (loc_id, mgr_name, wid))
     return jsonify({'ok': True})
 
+@app.route('/api/workers/<wid>/days', methods=['POST', 'OPTIONS'])
+def set_worker_days(wid):
+    if request.method == 'OPTIONS': return '', 200
+    s, err = require_auth(request)
+    if err: return err
+    d = request.json or {}
+    month = int(d.get('month', time.localtime().tm_mon))
+    year  = int(d.get('year',  time.localtime().tm_year))
+    target = max(0, int(d.get('days', 0)))
+    with get_db() as db:
+        w = db.execute('SELECT * FROM workers WHERE id=?', (wid,)).fetchone()
+        if not w: return jsonify({'error': 'not found'}), 404
+        logs = db.execute(
+            'SELECT * FROM logs WHERE worker_id=? AND clock_out IS NOT NULL ORDER BY clock_in DESC',
+            (wid,)).fetchall()
+        month_logs = []
+        for l in logs:
+            dt = datetime.datetime.fromtimestamp(l['clock_in'] / 1000)
+            if dt.month == month and dt.year == year:
+                month_logs.append(l)
+        current = len(month_logs)
+        if target < current:
+            # remove the most recent sessions
+            for l in month_logs[:current - target]:
+                db.execute('DELETE FROM logs WHERE id=?', (l['id'],))
+        elif target > current:
+            # add manual full-shift sessions dated noon on day 15 of the month
+            loc_id = s['location_id']
+            loc_name = ''
+            if loc_id:
+                lr = db.execute('SELECT name FROM locations WHERE id=?', (loc_id,)).fetchone()
+                loc_name = lr['name'] if lr else ''
+            shift_ms = int(float(get_setting('shift_hours') or 8) * 3600000)
+            base = int(datetime.datetime(year, month, 15, 12, 0).timestamp() * 1000)
+            for i in range(target - current):
+                cin = base + i  # unique timestamps
+                db.execute('INSERT INTO logs VALUES (?,?,?,?,?,?,?,0,0,NULL,?,?,0)',
+                           (uid(), wid, w['name'], s['username'], cin, cin + shift_ms, shift_ms,
+                            loc_id, loc_name))
+    return jsonify({'ok': True, 'days': target})
+
 @app.route('/api/workers/<wid>/overtime', methods=['POST', 'OPTIONS'])
 def toggle_overtime(wid):
     if request.method == 'OPTIONS': return '', 200

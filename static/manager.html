@@ -462,6 +462,10 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
         <span id="lbl-currency" style="font-size:.85rem;color:#64748b;white-space:nowrap">/ day</span>
       </div>
     </div>
+    <div class="modal-field" style="margin-bottom:12px">
+      <label id="lbl-days-inp" style="font-size:.8rem;font-weight:700;color:#64748b;display:block;margin-bottom:6px">Days worked (this month)</label>
+      <input type="number" id="days-inp" min="0" step="1" style="width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95rem;outline:none" placeholder="0"/>
+    </div>
     <div class="modal-field">
       <textarea id="note-ta" style="width:100%;min-height:80px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;resize:vertical;outline:none;font-family:inherit"></textarea>
     </div>
@@ -539,6 +543,7 @@ var T = {
     noLocationWorker:'No location assigned',changeLocation:'Change Location',
     notInRoster:'Not in roster',unavailable:'Unavailable',rosterConflict:'Already assigned to another location today',
     conflictsTitle:'Roster Conflicts',noConflicts:'No conflicts',conflictTriedToAdd:'tried to add worker already at',
+    daysWorkedLbl:'Days worked (this month)',
     rosterTitle:"Today's Workers",rosterSub:'Select workers coming to your location today',manageRoster:"Manage Today's Workers",
     wageLbl:'Daily Wage',perDay:'₪ / day',totalWage:'Total Wage',wageCol:'Wage (₪)',bonusLbl:'Plus / Bonus',deductionLbl:'Minus / Deduction',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -597,6 +602,7 @@ var T = {
     noLocationWorker:'لا يوجد موقع محدد',changeLocation:'تغيير الموقع',
     notInRoster:'غير مسجل اليوم',unavailable:'غير متاح',rosterConflict:'معين بالفعل لموقع آخر اليوم',
     conflictsTitle:'تعارضات التسجيل',noConflicts:'لا توجد تعارضات',conflictTriedToAdd:'حاول إضافة عامل مسجل بالفعل في',
+    daysWorkedLbl:'أيام العمل (هذا الشهر)',
     rosterTitle:'عمال اليوم',rosterSub:'اختر العمال الذين سيعملون في موقعك اليوم',manageRoster:'إدارة عمال اليوم',
     wageLbl:'الأجر اليومي',perDay:'₪ / يوم',totalWage:'إجمالي الأجر',wageCol:'الأجر (₪)',bonusLbl:'زيادة / مكافأة',deductionLbl:'ناقص / خصم',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -655,6 +661,7 @@ var T = {
     noLocationWorker:'לא הוגדר מיקום',changeLocation:'שנה מיקום',
     notInRoster:'לא ברשימת היום',unavailable:'לא זמין',rosterConflict:'כבר משובץ למיקום אחר היום',
     conflictsTitle:'התנגשויות שיבוץ',noConflicts:'אין התנגשויות',conflictTriedToAdd:'ניסה להוסיף עובד שכבר משובץ ב',
+    daysWorkedLbl:'ימי עבודה (החודש)',
     rosterTitle:'עובדי היום',rosterSub:'בחר עובדים שיגיעו למיקום שלך היום',manageRoster:'נהל עובדי היום',
     wageLbl:'שכר יומי',perDay:'₪ / יום',totalWage:'סה"כ שכר',wageCol:'שכר (₪)',bonusLbl:'פלוס / בונוס',deductionLbl:'מינוס / ניכוי',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -1684,6 +1691,17 @@ function openNoteModal(wid){
   g('wage-inp').value=w.wage_per_day||'';
   g('lbl-wage-inp').textContent=t.wageLbl||'Daily Wage';
   g('lbl-currency').textContent=t.perDay||'/ day';
+  g('lbl-days-inp').textContent=t.daysWorkedLbl||'Days worked (this month)';
+  var now=new Date(), dCount=0;
+  for(var li=0;li<allLogs.length;li++){
+    var lg=allLogs[li];
+    if(lg.worker_id===wid&&lg.clock_out){
+      var ld=new Date(lg.clock_in);
+      if(ld.getMonth()===now.getMonth()&&ld.getFullYear()===now.getFullYear()) dCount++;
+    }
+  }
+  g('days-inp').value=dCount;
+  g('days-inp').dataset.orig=dCount;
   g('note-save').textContent=t.noteBtn;
   g('note-cancel').textContent=t.cancelBtn;
   g('note-modal').classList.add('open');
@@ -1694,11 +1712,18 @@ async function saveWorkerNote(){
   if(!editingNoteWid) return;
   var note=g('note-ta').value.trim();
   var wage=parseFloat(g('wage-inp').value)||0;
+  var days=parseInt(g('days-inp').value,10);
+  var origDays=parseInt(g('days-inp').dataset.orig,10);
   try{
-    await Promise.all([
+    var calls=[
       api('/api/workers/'+editingNoteWid+'/note',{method:'POST',body:{note:note}}),
       api('/api/workers/'+editingNoteWid+'/wage',{method:'POST',body:{wage_per_day:wage}})
-    ]);
+    ];
+    if(!isNaN(days)&&days!==origDays){
+      var now2=new Date();
+      calls.push(api('/api/workers/'+editingNoteWid+'/days',{method:'POST',body:{days:days,month:now2.getMonth()+1,year:now2.getFullYear()}}));
+    }
+    await Promise.all(calls);
     toast(T[lang].saved); closeNoteModal(); await load();
   } catch(e){toast(T[lang].errServer)}
 }

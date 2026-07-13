@@ -823,7 +823,7 @@ function load(){
   var today=new Date().toISOString().slice(0,10);
   var rosterUrl='/api/roster?date='+today+(currentUser&&currentUser.location_id?'&location_id='+currentUser.location_id:'');
   return Promise.all([
-    api('/api/workers').then(function(r){return r.ok?r.json():[]}),
+    api('/api/workers?_all=1').then(function(r){return r.ok?r.json():[]}),
     api('/api/settings').then(function(r){if(r.status===401){doLogout();throw new Error('unauth')}return r.ok?r.json():{}}),
     api('/api/locations').then(function(r){return r.ok?r.json():[]}),
     api('/api/managers').then(function(r){return r.ok?r.json():[]}),

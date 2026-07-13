@@ -1100,7 +1100,12 @@ function renderList(){
       }
     } else {
       var workerLoc=currentUser.location_id||activeLocId;
-      clockBtnHtml='<button class="forceout-btn" style="background:#dcfce7;color:#16a34a" onclick="managerClock(\''+w.id+'\',\''+workerLoc+'\')">'+t.clockInBtn+'</button>';
+      var inRoster=currentUser.is_admin||(rosterIds.indexOf(w.id)>=0);
+      if(inRoster){
+        clockBtnHtml='<button class="forceout-btn" style="background:#dcfce7;color:#16a34a" onclick="managerClock(\''+w.id+'\',\''+workerLoc+'\')">'+t.clockInBtn+'</button>';
+      } else {
+        clockBtnHtml='<span style="font-size:.75rem;color:#cbd5e1;padding:4px 8px">'+( t.notInRoster||'Not in roster')+'</span>';
+      }
     }
     var locLabel='';
     html+=('<div class="'+cls+'">'

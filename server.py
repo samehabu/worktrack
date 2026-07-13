@@ -45,6 +45,9 @@ def init_db():
         db.execute('''CREATE TABLE IF NOT EXISTS reports (
             id TEXT PRIMARY KEY, worker_id TEXT, worker_name TEXT,
             month INTEGER, year INTEGER, content TEXT, generated_at INTEGER)''')
+        db.execute('''CREATE TABLE IF NOT EXISTS daily_roster (
+            date TEXT, worker_id TEXT, location_id TEXT,
+            PRIMARY KEY (date, worker_id))''')
         db.execute("INSERT OR IGNORE INTO settings VALUES ('day_active','0')")
         db.execute("INSERT OR IGNORE INTO settings VALUES ('shift_hours','8')")
         db.execute("INSERT OR IGNORE INTO settings VALUES ('tracking_mode','hours')")
@@ -383,12 +386,51 @@ def update_settings():
 @app.route('/api/workers', methods=['GET'])
 def get_workers():
     s = auth(request)
+    fetch_all = request.args.get('_all') == '1'
+    today = datetime.date.today().isoformat()
     with get_db() as db:
-        if s and not s['is_admin'] and s['location_id']:
-            rows = db.execute('SELECT * FROM workers WHERE location_id=? ORDER BY name', (s['location_id'],)).fetchall()
+        if s and not s['is_admin'] and s['location_id'] and not fetch_all:
+            # return only workers on today's roster for this location
+            rows = db.execute(
+                '''SELECT w.* FROM workers w
+                   INNER JOIN daily_roster r ON r.worker_id=w.id
+                   WHERE r.date=? AND r.location_id=? ORDER BY w.name''',
+                (today, s['location_id'])).fetchall()
         else:
             rows = db.execute('SELECT * FROM workers ORDER BY name').fetchall()
     return jsonify([dict(r) for r in rows])
+
+# ── Daily Roster ───────────────────────────────────────────────────────────
+@app.route('/api/roster', methods=['GET'])
+def get_roster():
+    s, err = require_auth(request)
+    if err: return err
+    date = request.args.get('date', datetime.date.today().isoformat())
+    loc_id = request.args.get('location_id') or s['location_id']
+    if not loc_id: return jsonify([])
+    with get_db() as db:
+        rows = db.execute('SELECT worker_id FROM daily_roster WHERE date=? AND location_id=?',
+                          (date, loc_id)).fetchall()
+    return jsonify([r['worker_id'] for r in rows])
+
+@app.route('/api/roster', methods=['POST', 'OPTIONS'])
+def set_roster():
+    if request.method == 'OPTIONS': return '', 200
+    s, err = require_auth(request)
+    if err: return err
+    d = request.json or {}
+    date = d.get('date', datetime.date.today().isoformat())
+    loc_id = d.get('location_id') or s['location_id']
+    if not loc_id: return jsonify({'error': 'location required'}), 400
+    if not s['is_admin'] and s['location_id'] != loc_id:
+        return jsonify({'error': 'forbidden'}), 403
+    worker_ids = d.get('worker_ids', [])
+    with get_db() as db:
+        db.execute('DELETE FROM daily_roster WHERE date=? AND location_id=?', (date, loc_id))
+        for wid in worker_ids:
+            db.execute('INSERT OR IGNORE INTO daily_roster (date,worker_id,location_id) VALUES (?,?,?)',
+                       (date, wid, loc_id))
+    return jsonify({'ok': True})
 
 @app.route('/api/workers', methods=['POST', 'OPTIONS'])
 def add_worker():

@@ -259,6 +259,10 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
         <button class="btn-add" id="add-btn" onclick="addWorker()">+ <span id="lbl-add-btn">Add</span></button>
       </div>
     </div>
+    <!-- Roster button (non-admin managers only) -->
+    <div id="roster-bar" style="display:none;margin-bottom:12px">
+      <button onclick="openRosterModal()" style="width:100%;padding:13px 18px;background:#4f46e5;color:#fff;border:none;border-radius:14px;font-size:.92rem;font-weight:700;cursor:pointer">👷 <span id="lbl-manage-roster">Manage Today's Workers</span></button>
+    </div>
     <!-- Worker list -->
     <div class="sec-lbl" id="lbl-all">All Workers</div>
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
@@ -434,6 +438,19 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
   </div>
 </div>
 
+<!-- ROSTER MODAL -->
+<div class="modal-overlay" id="roster-modal">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-title" id="roster-modal-title">Today's Workers</div>
+    <div style="font-size:.84rem;color:#64748b;margin-bottom:12px" id="roster-modal-sub">Select workers coming to your location today</div>
+    <div id="roster-modal-list" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="g('roster-modal').classList.remove('open')">Cancel</button>
+      <button class="btn-save" id="roster-save-btn" onclick="saveRoster()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- CLOSE DAY MODAL -->
 <div class="modal-overlay" id="close-day-modal">
   <div class="modal-box">
@@ -526,6 +543,7 @@ var T = {
     daysByWorker:'Days by Worker',daysLbl:'days',dayLbl:'day',
     clockInBtn:'Clock In',clockOutBtn:'Clock Out',workerLocPh:'— Location —',
     noLocationWorker:'No location assigned',changeLocation:'Change Location',
+    rosterTitle:"Today's Workers",rosterSub:'Select workers coming to your location today',manageRoster:"Manage Today's Workers",
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
   },
   ar:{
@@ -580,6 +598,7 @@ var T = {
     daysByWorker:'الأيام حسب العامل',daysLbl:'أيام',dayLbl:'يوم',
     clockInBtn:'تسجيل دخول',clockOutBtn:'تسجيل خروج',workerLocPh:'— الموقع —',
     noLocationWorker:'لا يوجد موقع محدد',changeLocation:'تغيير الموقع',
+    rosterTitle:'عمال اليوم',rosterSub:'اختر العمال الذين سيعملون في موقعك اليوم',manageRoster:'إدارة عمال اليوم',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
   },
   he:{
@@ -634,6 +653,7 @@ var T = {
     daysByWorker:'ימים לפי עובד',daysLbl:'ימים',dayLbl:'יום',
     clockInBtn:'כניסה',clockOutBtn:'יציאה',workerLocPh:'— מיקום —',
     noLocationWorker:'לא הוגדר מיקום',changeLocation:'שנה מיקום',
+    rosterTitle:'עובדי היום',rosterSub:'בחר עובדים שיגיעו למיקום שלך היום',manageRoster:'נהל עובדי היום',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
   }
 };
@@ -650,6 +670,8 @@ var secOpen = false, accsOpen = false, locPanelOpen = false;
 var activeLocId = null;
 var editingLogId = null;
 var failCount = 0;
+var rosterIds = [];
+var allWorkers = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 var COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#0ea5e9','#ef4444','#14b8a6'];
@@ -720,6 +742,7 @@ function applyLang(){
   g('lbl-report').textContent=t.report;
   g('lbl-hours').textContent=t.hoursByWorker;
   g('lbl-locations').textContent=t.locations;
+  if(g('lbl-manage-roster')) g('lbl-manage-roster').textContent=t.manageRoster||"Manage Today's Workers";
   g('lbl-add-loc').textContent=t.addLoc;
   g('new-loc-name').placeholder=t.locNamePh;
   g('lbl-add-loc-btn').textContent=t.addLocBtn;
@@ -771,6 +794,8 @@ function enterApp(){
   g('close-day-modal').addEventListener('click',function(e){if(e.target===this)closeCDModal()});
   g('note-modal').addEventListener('click',function(e){if(e.target===this)closeNoteModal()});
   g('report-modal').addEventListener('click',function(e){if(e.target===this)g('report-modal').classList.remove('open')});
+  g('roster-modal').addEventListener('click',function(e){if(e.target===this)g('roster-modal').classList.remove('open')});
+  if(!currentUser.is_admin && currentUser.location_id) g('roster-bar').style.display='block';
   applyLang(); load(); setInterval(load,10000);
 }
 function doLogout(){
@@ -784,13 +809,18 @@ function doLogout(){
 
 // ── Load ──────────────────────────────────────────────────────────────────
 function load(){
+  var today=new Date().toISOString().slice(0,10);
+  var rosterUrl='/api/roster?date='+today+(currentUser&&currentUser.location_id?'&location_id='+currentUser.location_id:'');
   return Promise.all([
     api('/api/workers').then(function(r){return r.ok?r.json():[]}),
     api('/api/settings').then(function(r){if(r.status===401){doLogout();throw new Error('unauth')}return r.ok?r.json():{}}),
     api('/api/locations').then(function(r){return r.ok?r.json():[]}),
-    api('/api/managers').then(function(r){return r.ok?r.json():[]})
+    api('/api/managers').then(function(r){return r.ok?r.json():[]}),
+    api(rosterUrl).then(function(r){return r.ok?r.json():[]}),
+    (currentUser&&currentUser.is_admin?api('/api/workers').then(function(r){return r.ok?r.json():[]}):Promise.resolve([]))
   ]).then(function(results){
     workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];
+    rosterIds=results[4]; if(results[5].length) allWorkers=results[5];
     shiftMs=parseFloat(settings.shift_hours||8)*3600000;
     trackingMode=settings.tracking_mode||'hours';
     // dayActive is now per-location — computed in renderDayCard from locations array
@@ -1111,6 +1141,42 @@ async function removeWorker(id,name){
 async function forceOut(id,name){
   if(!confirm(T[lang].forceOut+' '+name+'?')) return;
   await api('/api/workers/'+id+'/forceout',{method:'POST'}); toast(name+' ✓'); await load();
+}
+function openRosterModal(){
+  var t=T[lang];
+  g('roster-modal-title').textContent=t.rosterTitle||"Today's Workers";
+  g('roster-modal-sub').textContent=t.rosterSub||'Select workers coming to your location today';
+  g('roster-save-btn').textContent=t.saveBtn;
+  var pool=allWorkers.length?allWorkers:workers.concat([]);
+  // fetch all workers for the pool (admin sees all, non-admin fetches once)
+  api('/api/workers?_all=1').then(function(r){return r.ok?r.json():pool}).then(function(all){
+    allWorkers=all;
+    var html='';
+    for(var i=0;i<all.length;i++){
+      var w=all[i];
+      var checked=rosterIds.indexOf(w.id)>=0?'checked':'';
+      html+='<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border-radius:10px;cursor:pointer;font-size:.92rem">'
+        +'<input type="checkbox" value="'+w.id+'" '+checked+' style="width:18px;height:18px;cursor:pointer">'
+        +'<div class="av" style="background:'+clr(w.name)+';width:28px;height:28px;font-size:.65rem;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0">'+ini(w.name)+'</div>'
+        +w.name+'</label>';
+    }
+    g('roster-modal-list').innerHTML=html||('<div style="color:#94a3b8;font-size:.85rem">'+( t.noWorkers||'No workers')+'</div>');
+    g('roster-modal').classList.add('open');
+  });
+}
+async function saveRoster(){
+  var boxes=g('roster-modal-list').querySelectorAll('input[type=checkbox]');
+  var ids=[];
+  for(var i=0;i<boxes.length;i++){if(boxes[i].checked)ids.push(boxes[i].value);}
+  var today=new Date().toISOString().slice(0,10);
+  var locId=currentUser.location_id;
+  try{
+    var r=await api('/api/roster',{method:'POST',body:{date:today,location_id:locId,worker_ids:ids}});
+    if(!r.ok) throw new Error();
+    rosterIds=ids;
+    g('roster-modal').classList.remove('open');
+    toast(T[lang].saved); await load();
+  }catch(e){toast(T[lang].errServer);}
 }
 var movingWorkerId=null;
 function openMoveWorkerModal(wid,wname,curLocId){

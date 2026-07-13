@@ -1525,8 +1525,7 @@ function downloadReportPDF(){
         for(var pi=0;pi<lastReportData.length;pi++){pdfWageSum+=lastReportData[pi].total_wage||0;pdfDaysSum+=lastReportData[pi].sessions||0;pdfHrsSum+=lastReportData[pi].total_ms||0;}
         pdfWageSum=Math.round(pdfWageSum*100)/100;
         var pdfHrsTot=Math.floor(pdfHrsSum/3600000)+'h '+Math.floor(pdfHrsSum%3600000/60000)+'m';
-        rows+='<tr style="background:#f0fdf4;border-top:2px solid #86efac"><td colspan="2" style="padding:12px;font-weight:800;color:#15803d;font-size:14px">💰 '+(t.totalWage||'Total Wage')+'</td>'
-          +'<td style="padding:12px;font-weight:800;color:#15803d;text-align:end">'+(isDays?pdfDaysSum+' '+(t.daysLbl||'d'):pdfHrsTot)+'</td>'
+        rows+='<tr style="background:#f0fdf4;border-top:2px solid #86efac"><td colspan="3" style="padding:12px;font-weight:800;color:#15803d;font-size:14px">💰 '+(t.totalWage||'Total Wage')+'</td>'
           +'<td></td>'
           +'<td style="padding:12px;font-weight:900;color:#15803d;font-size:15px;text-align:end">₪'+pdfWageSum.toLocaleString()+'</td></tr>';
         return '';

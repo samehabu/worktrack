@@ -758,9 +758,9 @@ function doLogout(){
 // ── Load ──────────────────────────────────────────────────────────────────
 function load(){
   return Promise.all([
-    fetch('/api/workers').then(function(r){return r.json()}),
-    api('/api/settings').then(function(r){if(r.status===401){doLogout();throw new Error('unauth')}return r.json()}),
-    fetch('/api/locations').then(function(r){return r.json()}),
+    api('/api/workers').then(function(r){return r.ok?r.json():[]}),
+    api('/api/settings').then(function(r){if(r.status===401){doLogout();throw new Error('unauth')}return r.ok?r.json():{}}),
+    api('/api/locations').then(function(r){return r.ok?r.json():[]}),
     api('/api/managers').then(function(r){return r.ok?r.json():[]})
   ]).then(function(results){
     workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];

@@ -1349,7 +1349,7 @@ async function buildReport(){
     ry.value=cy;
   }
   try{
-    var locParam=activeLocId?'&location_id='+activeLocId:'';
+    var locParam='';
     var data=await(await fetch('/api/report?month='+rm.value+'&year='+ry.value+locParam)).json();
     var body=g('rep-body');
     if(!data.length){body.innerHTML='<div style="text-align:center;color:#cbd5e1;padding:28px;font-size:.88rem">'+t.noReport+' '+t.MONTHS[rm.value-1]+' '+ry.value+'.</div>';return}

@@ -1438,8 +1438,8 @@ function downloadReportExcel(){
   var dedHdr=t.deductionLbl||'Minus / Deduction';
   var totalHdr=t.totalWage||'Total Wage';
   var notesHdr=t.noteTitle||'Notes';
-  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr,notesHdr]);
-  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr,notesHdr]);
+  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
+  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
   for(var i=0;i<lastReportData.length;i++){
     var d=lastReportData[i];
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
@@ -1455,8 +1455,8 @@ function downloadReportExcel(){
     var dedVal=exDed>0?'-₪'+exDed:'';
     var totalVal=d.wage_per_day?'₪'+d.total_wage:'';
     var noteVal=d.note?d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l}).join(' | '):'';
-    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal,noteVal]);
-    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal,noteVal]);
+    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,noteVal,totalVal]);
+    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,noteVal,totalVal]);
   }
   // totals row
   var exTotalWage=0, exTotalDays=0, exTotalHours=0;

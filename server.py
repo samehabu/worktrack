@@ -457,7 +457,8 @@ def set_roster():
     with get_db() as db:
         # Check for workers already assigned to a different location today
         conflicts = []
-        req_loc_name = (db.execute('SELECT name FROM locations WHERE id=?', (loc_id,)).fetchone() or {}).get('name', loc_id)
+        _loc_row = db.execute('SELECT name FROM locations WHERE id=?', (loc_id,)).fetchone()
+        req_loc_name = _loc_row['name'] if _loc_row else loc_id
         for wid in worker_ids:
             row = db.execute(
                 '''SELECT r.location_id, l.name as loc_name, w.name as worker_name

@@ -49,6 +49,11 @@ def init_db():
         db.execute('''CREATE TABLE IF NOT EXISTS daily_roster (
             date TEXT, worker_id TEXT, location_id TEXT,
             PRIMARY KEY (date, worker_id))''')
+        db.execute('''CREATE TABLE IF NOT EXISTS conflict_alerts (
+            id TEXT PRIMARY KEY, date TEXT, worker_id TEXT, worker_name TEXT,
+            requesting_location_id TEXT, requesting_location_name TEXT,
+            existing_location_id TEXT, existing_location_name TEXT,
+            manager_username TEXT, created_at INTEGER, dismissed INTEGER DEFAULT 0)''')
         db.execute("INSERT OR IGNORE INTO settings VALUES ('day_active','0')")
         db.execute("INSERT OR IGNORE INTO settings VALUES ('shift_hours','8')")
         db.execute("INSERT OR IGNORE INTO settings VALUES ('tracking_mode','hours')")
@@ -431,6 +436,7 @@ def set_roster():
     with get_db() as db:
         # Check for workers already assigned to a different location today
         conflicts = []
+        req_loc_name = (db.execute('SELECT name FROM locations WHERE id=?', (loc_id,)).fetchone() or {}).get('name', loc_id)
         for wid in worker_ids:
             row = db.execute(
                 '''SELECT r.location_id, l.name as loc_name, w.name as worker_name
@@ -440,13 +446,41 @@ def set_roster():
                    WHERE r.date=? AND r.worker_id=? AND r.location_id!=?''',
                 (date, wid, loc_id)).fetchone()
             if row:
-                conflicts.append({'worker': row['worker_name'], 'location': row['loc_name']})
+                conflicts.append({'worker': row['worker_name'], 'worker_id': wid, 'location': row['loc_name'], 'location_id': row['location_id']})
+                import uuid as _uuid
+                db.execute('''INSERT OR IGNORE INTO conflict_alerts
+                    (id,date,worker_id,worker_name,requesting_location_id,requesting_location_name,
+                     existing_location_id,existing_location_name,manager_username,created_at,dismissed)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,0)''',
+                    (_uuid.uuid4().hex, date, wid, row['worker_name'],
+                     loc_id, req_loc_name, row['location_id'], row['loc_name'],
+                     s['username'], int(time.time()*1000)))
         if conflicts:
             return jsonify({'error': 'conflict', 'conflicts': conflicts}), 409
         db.execute('DELETE FROM daily_roster WHERE date=? AND location_id=?', (date, loc_id))
         for wid in worker_ids:
             db.execute('INSERT OR IGNORE INTO daily_roster (date,worker_id,location_id) VALUES (?,?,?)',
                        (date, wid, loc_id))
+    return jsonify({'ok': True})
+
+@app.route('/api/conflict_alerts', methods=['GET'])
+def get_conflict_alerts():
+    s, err = require_auth(request)
+    if err: return err
+    if not s['is_admin']: return jsonify({'error': 'admin_only'}), 403
+    with get_db() as db:
+        rows = db.execute(
+            'SELECT * FROM conflict_alerts WHERE dismissed=0 ORDER BY created_at DESC').fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/conflict_alerts/<aid>/dismiss', methods=['POST', 'OPTIONS'])
+def dismiss_conflict_alert(aid):
+    if request.method == 'OPTIONS': return '', 200
+    s, err = require_auth(request)
+    if err: return err
+    if not s['is_admin']: return jsonify({'error': 'admin_only'}), 403
+    with get_db() as db:
+        db.execute('UPDATE conflict_alerts SET dismissed=1 WHERE id=?', (aid,))
     return jsonify({'ok': True})
 
 @app.route('/api/workers', methods=['POST', 'OPTIONS'])

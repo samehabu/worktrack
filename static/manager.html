@@ -333,6 +333,16 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
       </div>
     </div>
     <!-- AI Reports (admin only) -->
+    <!-- Conflict alerts (admin only) -->
+    <div id="conflict-wrap" style="display:none">
+      <button class="panel-btn" onclick="toggleConflicts()" style="position:relative">
+        ⚠️ <span id="lbl-conflicts">Roster Conflicts</span>
+        <span id="conflict-badge" style="display:none;position:absolute;top:6px;inset-inline-end:10px;background:#ef4444;color:#fff;border-radius:999px;font-size:.7rem;padding:1px 6px;font-weight:800"></span>
+      </button>
+      <div class="collapsible" id="conflict-panel">
+        <div id="conflict-list" style="padding:4px 0"></div>
+      </div>
+    </div>
     <div id="ai-rep-wrap" style="display:none">
       <button class="panel-btn" onclick="toggleAIReports()">🤖 <span id="lbl-ai-reports">AI Monthly Reports</span></button>
       <div class="collapsible" id="ai-rep-panel">
@@ -786,7 +796,9 @@ function enterApp(){
   if(currentUser.is_admin){
     g('mgr-wrap').style.display='block';
     g('loc-wrap').style.display='block';
+    g('conflict-wrap').style.display='block';
     g('ai-rep-wrap').style.display='block';
+    loadConflictAlerts();
     activeLocId=null;
   } else {
     activeLocId=currentUser.location_id||null;
@@ -1651,6 +1663,43 @@ async function removeManager(id,name){
 
 // ── AI Reports ────────────────────────────────────────────────────────────
 var aiRepOpen=false, aiRepInit=false;
+var conflictsOpen=false;
+function toggleConflicts(){
+  conflictsOpen=!conflictsOpen;
+  g('conflict-panel').classList.toggle('open',conflictsOpen);
+  if(conflictsOpen) loadConflictAlerts();
+}
+async function loadConflictAlerts(){
+  try{
+    var data=await(await api('/api/conflict_alerts')).json();
+    var badge=g('conflict-badge');
+    if(data.length){badge.textContent=data.length;badge.style.display='inline';}
+    else{badge.style.display='none';}
+    var list=g('conflict-list');
+    if(!data.length){list.innerHTML='<div style="color:#94a3b8;font-size:.85rem;padding:8px 0">No conflicts</div>';return;}
+    var html='';
+    for(var i=0;i<data.length;i++){
+      var c=data[i];
+      var dt=new Date(c.created_at).toLocaleDateString();
+      html+=('<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;gap:8px">'
+        +'<div style="font-size:.82rem">'
+        +'<strong>'+c.worker_name+'</strong> '
+        +'<span style="color:#ef4444">⚠️</span> '
+        +'<span style="color:#64748b">'+c.manager_username+' ('+c.requesting_location_name+') tried to add worker already at <strong>'+c.existing_location_name+'</strong></span>'
+        +'<div style="color:#94a3b8;font-size:.75rem">'+c.date+' · '+dt+'</div>'
+        +'</div>'
+        +'<button class="del-btn" style="color:#94a3b8;flex-shrink:0" onclick="dismissConflict(\''+c.id+'\')">✕</button>'
+        +'</div>');
+    }
+    list.innerHTML=html;
+  }catch(e){}
+}
+async function dismissConflict(id){
+  try{
+    await api('/api/conflict_alerts/'+id+'/dismiss',{method:'POST',body:{}});
+    loadConflictAlerts();
+  }catch(e){}
+}
 function toggleAIReports(){
   aiRepOpen=!aiRepOpen;
   g('ai-rep-panel').classList.toggle('open',aiRepOpen);

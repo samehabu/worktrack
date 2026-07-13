@@ -1407,15 +1407,18 @@ async function buildReport(){
     // totals row
     var totalWageSum=0, totalDays=0, totalHours=0, workersWithWage=0;
     for(var k=0;k<data.length;k++){
-      if(data[k].total_wage){totalWageSum+=data[k].total_wage;workersWithWage++;}
+      if(data[k].wage_per_day){totalWageSum+=(data[k].total_wage||0);workersWithWage++;}
       totalDays+=data[k].sessions||0;
       totalHours+=data[k].total_ms||0;
     }
     totalWageSum=Math.round(totalWageSum*100)/100;
     if(workersWithWage>0){
-      html+='<div style="margin-top:12px;padding:14px 16px;background:#f0fdf4;border:2px solid #86efac;border-radius:14px;display:flex;align-items:center;justify-content:space-between">'
-        +'<div style="font-weight:800;font-size:.95rem;color:#15803d">💰 '+(t.totalWage||'Total Wage')+' — '+(isDays?totalDays+' '+(t.daysLbl||'days'):fmt(totalHours))+'</div>'
-        +'<div style="font-weight:900;font-size:1.1rem;color:#15803d">₪'+totalWageSum.toLocaleString()+'</div>'
+      html+='<div style="margin-top:16px;padding:16px 20px;background:#f0fdf4;border:2px solid #16a34a;border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">'
+        +'<div>'
+        +'<div style="font-size:.78rem;color:#16a34a;font-weight:700;margin-bottom:2px">💰 '+(t.totalWage||'Total Wage')+' ('+workersWithWage+' workers)</div>'
+        +'<div style="font-size:.8rem;color:#64748b">'+(isDays?totalDays+' '+(t.daysLbl||'days'):fmt(totalHours))+'</div>'
+        +'</div>'
+        +'<div style="font-weight:900;font-size:1.4rem;color:#15803d">₪'+totalWageSum.toLocaleString()+'</div>'
         +'</div>';
     }
     body.innerHTML=html;

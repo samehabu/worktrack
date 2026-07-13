@@ -285,6 +285,27 @@ def manager_login_temp():
     return jsonify({'ok': True, 'token': token, 'username': m['username'],
                     'is_admin': bool(m['is_admin']), 'must_change_pw': True})
 
+@app.route('/api/managers/reset', methods=['POST', 'OPTIONS'])
+def manager_reset():
+    if request.method == 'OPTIONS': return '', 200
+    d = request.json or {}
+    temp_pw = (d.get('temp_password') or '').strip()
+    new_pw  = d.get('new_password', '')
+    if len(new_pw) < 4:
+        return jsonify({'ok': False, 'error': 'too_short'}), 400
+    # find which username this temp password belongs to
+    username = None
+    for u, s in list(TEMP_TOKENS.items()):
+        if s.get('temp_pw') == temp_pw and time.time() <= s.get('expires', 0):
+            username = u
+            break
+    if not username:
+        return jsonify({'ok': False, 'error': 'invalid_temp'}), 401
+    TEMP_TOKENS.pop(username, None)
+    with get_db() as db:
+        db.execute('UPDATE managers SET password=? WHERE username=?', (hash_pw(new_pw), username))
+    return jsonify({'ok': True})
+
 @app.route('/api/managers', methods=['GET'])
 def list_managers():
     s, err = require_auth(request)

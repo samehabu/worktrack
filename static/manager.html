@@ -923,10 +923,15 @@ function renderDayCard(){
   g('day-lbl').textContent=t.dayClosedLbl;
   var loc=_activeLoc();
   if(!loc){
-    // Admin on "All Sites" — show per-location summary inside the card
     g('day-btn').style.display='none';
     g('day-card').className='day-card';
     g('day-title').textContent='';
+    if(!currentUser.is_admin){
+      g('day-sub').textContent=t.noLocation||'No location assigned';
+      dayActive=false;
+      return;
+    }
+    // Admin on "All Sites" — show per-location summary inside the card
     if(!locations.length){
       g('day-sub').textContent=t.noLocation;
     } else {

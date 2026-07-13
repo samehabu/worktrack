@@ -30,7 +30,8 @@ def init_db():
             id TEXT PRIMARY KEY, name TEXT, manager TEXT,
             working INTEGER DEFAULT 0, clock_start INTEGER,
             current_location_id TEXT, note TEXT DEFAULT '',
-            overtime_active INTEGER DEFAULT 0, location_id TEXT)''')
+            overtime_active INTEGER DEFAULT 0, location_id TEXT,
+            wage_per_day REAL DEFAULT 0)''')
         db.execute('''CREATE TABLE IF NOT EXISTS logs (
             id TEXT PRIMARY KEY, worker_id TEXT, worker_name TEXT,
             manager TEXT, clock_in INTEGER, clock_out INTEGER,
@@ -79,6 +80,8 @@ def _migrate(db):
         db.execute('ALTER TABLE workers ADD COLUMN overtime_active INTEGER DEFAULT 0')
     if 'location_id' not in wc:
         db.execute('ALTER TABLE workers ADD COLUMN location_id TEXT')
+    if 'wage_per_day' not in wc:
+        db.execute('ALTER TABLE workers ADD COLUMN wage_per_day REAL DEFAULT 0')
     lcc = cols('locations')
     if 'day_active' not in lcc:
         db.execute('ALTER TABLE locations ADD COLUMN day_active INTEGER DEFAULT 0')
@@ -548,6 +551,14 @@ def save_worker_note(wid):
         db.execute('UPDATE workers SET note=? WHERE id=?', (note, wid))
     return jsonify({'ok': True})
 
+@app.route('/api/workers/<wid>/wage', methods=['POST', 'OPTIONS'])
+def save_worker_wage(wid):
+    if request.method == 'OPTIONS': return '', 200
+    wage = float((request.json or {}).get('wage_per_day') or 0)
+    with get_db() as db:
+        db.execute('UPDATE workers SET wage_per_day=? WHERE id=?', (wage, wid))
+    return jsonify({'ok': True})
+
 @app.route('/api/workers/<wid>/request_ot', methods=['POST'])
 def request_ot(wid):
     with get_db() as db:
@@ -689,7 +700,9 @@ def report():
                               (location_id,)).fetchall()
         else:
             logs = db.execute('SELECT * FROM logs WHERE clock_out IS NOT NULL').fetchall()
-        worker_notes = {r['id']: r['note'] or '' for r in db.execute('SELECT id, note FROM workers').fetchall()}
+        worker_rows = db.execute('SELECT id, note, wage_per_day FROM workers').fetchall()
+        worker_notes = {r['id']: r['note'] or '' for r in worker_rows}
+        worker_wages = {r['id']: float(r['wage_per_day'] or 0) for r in worker_rows}
     tracking_mode = get_setting('tracking_mode') or 'hours'
     result = {}
     for l in [dict(r) for r in logs]:
@@ -697,11 +710,13 @@ def report():
         if d.month != month or d.year != year: continue
         wid = l['worker_id']
         if wid not in result:
+            wpd = worker_wages.get(wid, 0)
             result[wid] = {'name': l['worker_name'], 'manager': l['manager'],
                            'location': l.get('location_name') or '—',
                            'note': worker_notes.get(wid, ''),
                            'total_ms': 0, 'sessions': 0, 'overtime_sessions': 0,
                            'tracking_mode': tracking_mode,
+                           'wage_per_day': wpd,
                            'locations': {}}
         result[wid]['total_ms']          += l['duration_ms'] or 0
         result[wid]['sessions']          += 1
@@ -709,11 +724,12 @@ def report():
         loc_name = l.get('location_name') or '—'
         locs = result[wid]['locations']
         locs[loc_name] = locs.get(loc_name, 0) + 1
-    # convert locations dict to sorted list
+    # convert locations dict to sorted list; compute total_wage
     for wid in result:
         result[wid]['locations'] = sorted(
             [{'name': k, 'days': v} for k, v in result[wid]['locations'].items()],
             key=lambda x: -x['days'])
+        result[wid]['total_wage'] = round(result[wid]['sessions'] * result[wid]['wage_per_day'], 2)
     key = (lambda x: -x['sessions']) if tracking_mode == 'days' else (lambda x: -x['total_ms'])
     return jsonify(sorted(result.values(), key=key))
 

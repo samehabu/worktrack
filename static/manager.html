@@ -468,8 +468,15 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
 <div class="modal-overlay" id="note-modal">
   <div class="modal-box" style="max-width:360px">
     <div class="modal-title" id="note-modal-title"></div>
+    <div class="modal-field" style="margin-bottom:12px">
+      <label id="lbl-wage-inp" style="font-size:.8rem;font-weight:700;color:#64748b;display:block;margin-bottom:6px">Daily Wage</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="number" id="wage-inp" min="0" step="0.01" style="width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95rem;outline:none" placeholder="0"/>
+        <span id="lbl-currency" style="font-size:.85rem;color:#64748b;white-space:nowrap">/ day</span>
+      </div>
+    </div>
     <div class="modal-field">
-      <textarea id="note-ta" style="width:100%;min-height:100px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;resize:vertical;outline:none;font-family:inherit"></textarea>
+      <textarea id="note-ta" style="width:100%;min-height:80px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;resize:vertical;outline:none;font-family:inherit"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="note-cancel" onclick="closeNoteModal()">Cancel</button>
@@ -544,6 +551,7 @@ var T = {
     clockInBtn:'Clock In',clockOutBtn:'Clock Out',workerLocPh:'— Location —',
     noLocationWorker:'No location assigned',changeLocation:'Change Location',
     rosterTitle:"Today's Workers",rosterSub:'Select workers coming to your location today',manageRoster:"Manage Today's Workers",
+    wageLbl:'Daily Wage',perDay:'/ day',totalWage:'Total Wage',wageCol:'Wage',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
   },
   ar:{
@@ -599,6 +607,7 @@ var T = {
     clockInBtn:'تسجيل دخول',clockOutBtn:'تسجيل خروج',workerLocPh:'— الموقع —',
     noLocationWorker:'لا يوجد موقع محدد',changeLocation:'تغيير الموقع',
     rosterTitle:'عمال اليوم',rosterSub:'اختر العمال الذين سيعملون في موقعك اليوم',manageRoster:'إدارة عمال اليوم',
+    wageLbl:'الأجر اليومي',perDay:'/ يوم',totalWage:'إجمالي الأجر',wageCol:'الأجر',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
   },
   he:{
@@ -654,6 +663,7 @@ var T = {
     clockInBtn:'כניסה',clockOutBtn:'יציאה',workerLocPh:'— מיקום —',
     noLocationWorker:'לא הוגדר מיקום',changeLocation:'שנה מיקום',
     rosterTitle:'עובדי היום',rosterSub:'בחר עובדים שיגיעו למיקום שלך היום',manageRoster:'נהל עובדי היום',
+    wageLbl:'שכר יומי',perDay:'/ יום',totalWage:'סה"כ שכר',wageCol:'שכר',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
   }
 };
@@ -1364,11 +1374,16 @@ async function buildReport(){
         }
         locHtml='<div style="margin-top:4px">'+tags+'</div>';
       }
+      var wageHtml='';
+      if(d.wage_per_day){
+        var wageTotal=d.total_wage||0;
+        wageHtml='<div style="font-size:.75rem;color:#16a34a;font-weight:700;margin-top:3px">💰 '+wageTotal.toLocaleString()+' ('+d.sessions+' × '+d.wage_per_day+')</div>';
+      }
       html+=('<div class="rep-row">'
         +'<div class="av" style="background:'+clr(d.name)+';width:38px;height:38px;font-size:.82rem;flex-shrink:0">'+ini(d.name)+'</div>'
         +'<div style="flex:1;min-width:0"><div class="rn">'+d.name+'</div>'
         +'<div class="rm2">'+subLine+'</div>'
-        +locHtml+noteHtml+'</div>'
+        +locHtml+wageHtml+noteHtml+'</div>'
         +'<div class="rh">'+rightVal+'</div></div>');
     }
     body.innerHTML=html;
@@ -1382,8 +1397,8 @@ function downloadReportExcel(){
   var isDays=trackingMode==='days';
   var monthName=t.MONTHS[lastReportMonth-1]+' '+lastReportYear;
   var rows=[['WorkTrack — '+monthName],[]];
-  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime']);
-  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime']);
+  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',t.wageCol||'Wage']);
+  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',t.wageCol||'Wage']);
   for(var i=0;i<lastReportData.length;i++){
     var d=lastReportData[i];
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
@@ -1391,9 +1406,10 @@ function downloadReportExcel(){
     if(d.locations&&d.locations.length){
       locSummary=d.locations.map(function(l){return l.name+' ('+l.days+'d)'}).join(' | ');
     }
-    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions]);
-    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions]);
-    if(d.note) rows.push(['  📝 '+d.note,'','','','','']);
+    var wageVal=d.wage_per_day?d.total_wage+' ('+d.sessions+' × '+d.wage_per_day+')':'';
+    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,wageVal]);
+    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,wageVal]);
+    if(d.note) rows.push(['  📝 '+d.note,'','','','','','']);
   }
   var csv=rows.map(function(r){return r.map(function(c){return'"'+(c+'').replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
@@ -1414,17 +1430,19 @@ function downloadReportPDF(){
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
     var val=isDays?(d.sessions+' '+(t.daysLbl||'days')):hrs;
     var ot=d.overtime_sessions?('<span style="color:#d97706">+'+d.overtime_sessions+' OT</span>'):'';
-    var note=d.note?('<tr><td colspan="4" style="font-size:11px;color:#64748b;padding:2px 12px 8px;font-style:italic">📝 '+d.note+'</td></tr>'):'';
+    var note=d.note?('<tr><td colspan="5" style="font-size:11px;color:#64748b;padding:2px 12px 8px;font-style:italic">📝 '+d.note+'</td></tr>'):'';
     var locTags='';
     if(d.locations&&d.locations.length){
       for(var j=0;j<d.locations.length;j++){
         locTags+='<span style="display:inline-block;background:#ede9fe;color:#4f46e5;border-radius:999px;padding:1px 7px;font-size:11px;margin:1px">📍 '+d.locations[j].name+' ('+d.locations[j].days+'d)</span>';
       }
     } else { locTags=d.location||'—'; }
+    var wageCell=d.wage_per_day?('<strong style="color:#16a34a">'+d.total_wage+'</strong><br><span style="font-size:10px;color:#94a3b8">'+d.sessions+' × '+d.wage_per_day+'</span>'):'—';
     rows+=('<tr><td style="padding:10px 12px;font-weight:700">'+d.name+'</td>'
       +'<td style="padding:10px 12px;color:#64748b">'+d.manager+'</td>'
       +'<td style="padding:10px 12px">'+locTags+'</td>'
-      +'<td style="padding:10px 12px;font-weight:800;color:#4f46e5;text-align:end">'+val+' '+ot+'</td></tr>'+note);
+      +'<td style="padding:10px 12px;font-weight:800;color:#4f46e5;text-align:end">'+val+' '+ot+'</td>'
+      +'<td style="padding:10px 12px;text-align:end">'+wageCell+'</td></tr>'+note);
   }
   var html='<!DOCTYPE html><html dir="'+(isRTL?'rtl':'ltr')+'" lang="'+lang+'">'
     +'<head><meta charset="UTF-8"><title>WorkTrack Report</title>'
@@ -1442,6 +1460,7 @@ function downloadReportPDF(){
     +'<table><thead><tr>'
     +'<td>'+(t.workers||'Worker')+'</td><td>'+(t.managerLbl||'Manager')+'</td><td>Location</td>'
     +'<td style="text-align:end">'+(isDays?(t.daysLbl||'Days'):'Hours')+'</td>'
+    +'<td style="text-align:end">'+(t.wageCol||'Wage')+'</td>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>'
     +'<div style="margin-top:32px;text-align:center"><button onclick="window.print()" style="padding:10px 28px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 Print / Save as PDF</button></div>'
     +'</body></html>';
@@ -1648,17 +1667,24 @@ function openNoteModal(wid){
   g('note-modal-title').textContent=w.name;
   g('note-ta').placeholder=t.notePh;
   g('note-ta').value=w.note||'';
+  g('wage-inp').value=w.wage_per_day||'';
+  g('lbl-wage-inp').textContent=t.wageLbl||'Daily Wage';
+  g('lbl-currency').textContent=t.perDay||'/ day';
   g('note-save').textContent=t.noteBtn;
   g('note-cancel').textContent=t.cancelBtn;
   g('note-modal').classList.add('open');
-  setTimeout(function(){g('note-ta').focus()},100);
+  setTimeout(function(){g('wage-inp').focus()},100);
 }
 function closeNoteModal(){g('note-modal').classList.remove('open');editingNoteWid=null}
 async function saveWorkerNote(){
   if(!editingNoteWid) return;
   var note=g('note-ta').value.trim();
+  var wage=parseFloat(g('wage-inp').value)||0;
   try{
-    await api('/api/workers/'+editingNoteWid+'/note',{method:'POST',body:{note:note}});
+    await Promise.all([
+      api('/api/workers/'+editingNoteWid+'/note',{method:'POST',body:{note:note}}),
+      api('/api/workers/'+editingNoteWid+'/wage',{method:'POST',body:{wage_per_day:wage}})
+    ]);
     toast(T[lang].saved); closeNoteModal(); await load();
   } catch(e){toast(T[lang].errServer)}
 }

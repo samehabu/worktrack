@@ -1438,8 +1438,9 @@ function downloadReportExcel(){
   var dedHdr=t.deductionLbl||'Minus / Deduction';
   var totalHdr=t.totalWage||'Total Wage';
   var notesHdr=t.noteTitle||'Notes';
-  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
-  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
+  var locHdr=t.locationLbl||'Location';
+  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager',locHdr,t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
+  else rows.push([t.workers||'Worker',t.managerLbl||'Manager',locHdr,'Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,notesHdr,totalHdr]);
   for(var i=0;i<lastReportData.length;i++){
     var d=lastReportData[i];
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';

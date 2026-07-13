@@ -732,9 +732,18 @@ def report():
             key=lambda x: -x['days'])
         gross = round(result[wid]['sessions'] * result[wid]['wage_per_day'], 2)
         note = result[wid].get('note', '') or ''
+        # symbol forms: -200 or 200-  →  deduction; +200 or 200+  →  bonus
         deductions = sum(float(m) for m in _re.findall(r'(?<!\d)-\s*(\d+(?:\.\d+)?)', note))
+        deductions += sum(float(m) for m in _re.findall(r'(\d+(?:\.\d+)?)\s*-(?!\d)', note))
         bonuses = sum(float(m) for m in _re.findall(r'\+\s*(\d+(?:\.\d+)?)', note))
         bonuses += sum(float(m) for m in _re.findall(r'(\d+(?:\.\d+)?)\s*\+(?!\d)', note))
+        # word forms (EN / AR / HE)  →  word  number
+        _plus_words  = r'(?:plus|bonus|פלוס|בונוס|زيادة|بلس|إضافة)'
+        _minus_words = r'(?:minus|deduction|מינוס|ניכוי|ناقص|خصم|طرح)'
+        bonuses    += sum(float(m) for m in _re.findall(_plus_words  + r'\s+(\d+(?:\.\d+)?)', note, _re.IGNORECASE))
+        bonuses    += sum(float(m) for m in _re.findall(r'(\d+(?:\.\d+)?)\s+' + _plus_words,  note, _re.IGNORECASE))
+        deductions += sum(float(m) for m in _re.findall(_minus_words + r'\s+(\d+(?:\.\d+)?)', note, _re.IGNORECASE))
+        deductions += sum(float(m) for m in _re.findall(r'(\d+(?:\.\d+)?)\s+' + _minus_words, note, _re.IGNORECASE))
         result[wid]['deductions'] = round(deductions, 2)
         result[wid]['bonuses'] = round(bonuses, 2)
         result[wid]['total_wage'] = round(gross - deductions + bonuses, 2)

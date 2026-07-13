@@ -1228,7 +1228,7 @@ function toggleLogs(){
   if(logsOpen) loadLogs();
 }
 async function loadLogs(){
-  var url='/api/logs';
+  var url=activeLocId?'/api/logs?location_id='+activeLocId:'/api/logs';
   try{
     allLogs=await(await api(url)).json();
     renderStats();

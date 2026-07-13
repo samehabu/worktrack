@@ -261,6 +261,15 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
     </div>
     <!-- Worker list -->
     <div class="sec-lbl" id="lbl-all">All Workers</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="worker-search" oninput="renderList()" autocomplete="off"
+        style="flex:1;min-width:140px;padding:9px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none"
+        placeholder="🔍 Search name…"/>
+      <select id="worker-filter-loc" onchange="renderList()"
+        style="flex:1;min-width:120px;padding:9px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.88rem;background:#fff;outline:none">
+        <option value="" id="filter-all-opt">All Locations</option>
+      </select>
+    </div>
     <div id="worker-list"></div>
     <!-- Logs panel -->
     <button class="panel-btn" onclick="toggleLogs()">📋 <span id="lbl-logs">Logs</span></button>
@@ -808,6 +817,16 @@ function renderLocUI(){
       selOpts+='<option value="'+locations[i].id+'"'+sel+'>'+locations[i].name+'</option>';
     }
     locSel.innerHTML=selOpts;
+    // Populate location filter dropdown
+    var flSel=g('worker-filter-loc');
+    if(flSel){
+      var cur=flSel.value;
+      var flOpts='<option value="">'+( t.allSites||'All Locations')+'</option>';
+      for(var i=0;i<locations.length;i++){
+        flOpts+='<option value="'+locations[i].id+'"'+(locations[i].id===cur?' selected':'')+'>'+locations[i].name+'</option>';
+      }
+      flSel.innerHTML=flOpts;
+    }
   } else {
     g('loc-tabs').style.display='none';
     var loc=activeLocId?locations.find(function(l){return l.id===activeLocId}):null;
@@ -827,9 +846,15 @@ function setActiveLoc(id){
   if(repOpen) buildReport();
 }
 function visibleWorkers(){
-  if(!currentUser.is_admin) return workers; // server already filtered by location
-  if(!activeLocId) return workers; // admin "All Sites"
-  return workers.filter(function(w){ return w.location_id===activeLocId; });
+  var search=(g('worker-search')?g('worker-search').value.trim().toLowerCase():'');
+  var filterLoc=(g('worker-filter-loc')?g('worker-filter-loc').value:'');
+  var base;
+  if(!currentUser.is_admin) base=workers;
+  else if(!activeLocId) base=workers;
+  else base=workers.filter(function(w){return w.location_id===activeLocId;});
+  if(search) base=base.filter(function(w){return w.name.toLowerCase().indexOf(search)>=0;});
+  if(filterLoc) base=base.filter(function(w){return w.location_id===filterLoc;});
+  return base;
 }
 
 // ── Day Card ──────────────────────────────────────────────────────────────

@@ -1555,7 +1555,9 @@ function renderLocList(){
   var html='';
   for(var i=0;i<locations.length;i++){
     var l=locations[i];
-    html+='<div class="mgr-row"><div class="mgr-name">'+l.name+'</div>'
+    var mgr=managers.find(function(m){return m.location_id===l.id&&!m.is_admin});
+    var mgrTag=mgr?('<span style="font-size:.75rem;color:#6366f1;margin-left:8px">👤 '+mgr.username+'</span>'):'';
+    html+='<div class="mgr-row"><div class="mgr-name">'+l.name+mgrTag+'</div>'
       +'<button class="del-btn" onclick="removeLocation(\''+l.id+'\',\''+l.name.replace(/'/g,"\\'")+'\')" >✕</button></div>';
   }
   body.innerHTML=html;

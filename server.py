@@ -691,9 +691,14 @@ def delete_log(lid):
 # ── Report ─────────────────────────────────────────────────────────────────
 @app.route('/api/report')
 def report():
+    s = get_session()
+    if not s: return jsonify({'error': 'unauth'}), 401
     month       = int(request.args.get('month', time.localtime().tm_mon))
     year        = int(request.args.get('year',  time.localtime().tm_year))
     location_id = request.args.get('location_id')
+    # Non-admin managers are restricted to their own location
+    if not s['is_admin'] and s['location_id']:
+        location_id = s['location_id']
     with get_db() as db:
         if location_id:
             logs = db.execute('SELECT * FROM logs WHERE clock_out IS NOT NULL AND location_id=?',

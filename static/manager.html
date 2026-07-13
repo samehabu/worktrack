@@ -1451,8 +1451,9 @@ function downloadReportPDF(){
         locTags+='<span style="display:inline-block;background:#ede9fe;color:#4f46e5;border-radius:999px;padding:1px 7px;font-size:11px;margin:1px">📍 '+d.locations[j].name+' ('+d.locations[j].days+'d)</span>';
       }
     } else { locTags=d.location||'—'; }
-    var dedStr=d.deductions?('<br><span style="font-size:10px;color:#ef4444">−₪'+d.deductions+'</span>'):'';
-    var wageCell=d.wage_per_day?('<strong style="color:#16a34a">₪'+d.total_wage+'</strong>'+dedStr+'<br><span style="font-size:10px;color:#94a3b8">'+d.sessions+' × ₪'+d.wage_per_day+'</span>'):'—';
+    var dedStr=(d.deductions&&d.deductions>0)?('<br><span style="font-size:10px;color:#ef4444">➖ −₪'+d.deductions+'</span>'):'';
+    var bonStr=(d.bonuses&&d.bonuses>0)?('<br><span style="font-size:10px;color:#16a34a">➕ +₪'+d.bonuses+'</span>'):'';
+    var wageCell=d.wage_per_day?('<strong style="color:#16a34a">₪'+d.total_wage+'</strong>'+bonStr+dedStr+'<br><span style="font-size:10px;color:#94a3b8">'+d.sessions+' × ₪'+d.wage_per_day+'</span>'):'—';
     rows+=('<tr><td style="padding:10px 12px;font-weight:700">'+d.name+'</td>'
       +'<td style="padding:10px 12px;color:#64748b">'+d.manager+'</td>'
       +'<td style="padding:10px 12px">'+locTags+'</td>'

@@ -275,6 +275,10 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
         <select id="rmon"></select>
         <select id="ryear"></select>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="shift-save" id="dl-excel-btn" onclick="downloadReportExcel()" style="background:#16a34a;padding:7px 14px;border-radius:8px;font-size:.82rem">⬇ Excel</button>
+        <button class="shift-save" id="dl-pdf-btn" onclick="downloadReportPDF()" style="background:#dc2626;padding:7px 14px;border-radius:8px;font-size:.82rem">⬇ PDF</button>
+      </div>
       <div id="rep-body"></div>
     </div>
     <!-- Locations (admin only) -->
@@ -619,6 +623,7 @@ var currentUser = JSON.parse(localStorage.getItem('wt_user') || 'null');
 var workers = [], allLogs = [], locations = [], managers = [];
 var dayActive = false, shiftMs = 8*3600000, trackingMode = 'hours';
 var logsOpen = false, repOpen = false, repInit = false;
+var lastReportData = [], lastReportMonth = 1, lastReportYear = 2024;
 var secOpen = false, accsOpen = false, locPanelOpen = false;
 var activeLocId = null;
 var editingLogId = null;
@@ -1207,6 +1212,7 @@ async function buildReport(){
     var data=await(await fetch('/api/report?month='+rm.value+'&year='+ry.value+locParam)).json();
     var body=g('rep-body');
     if(!data.length){body.innerHTML='<div style="text-align:center;color:#cbd5e1;padding:28px;font-size:.88rem">'+t.noReport+' '+t.MONTHS[rm.value-1]+' '+ry.value+'.</div>';return}
+    lastReportData=data; lastReportMonth=+rm.value; lastReportYear=+ry.value;
     var isDays=trackingMode==='days';
     g('lbl-hours').textContent=isDays?t.daysByWorker:t.hoursByWorker;
     var html='';
@@ -1229,6 +1235,70 @@ async function buildReport(){
     }
     body.innerHTML=html;
   } catch(e){g('rep-body').innerHTML='<div style="color:#ef4444;padding:16px">'+T[lang].errServer+'</div>'}
+}
+
+// ── Report Downloads ──────────────────────────────────────────────────────
+function downloadReportExcel(){
+  if(!lastReportData.length){toast(T[lang].noReport||'No data');return;}
+  var t=T[lang];
+  var isDays=trackingMode==='days';
+  var monthName=t.MONTHS[lastReportMonth-1]+' '+lastReportYear;
+  var rows=[['WorkTrack — '+monthName],[]];
+  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime']);
+  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime']);
+  for(var i=0;i<lastReportData.length;i++){
+    var d=lastReportData[i];
+    var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
+    if(isDays) rows.push([d.name,d.manager,d.location||'',d.sessions,d.overtime_sessions]);
+    else rows.push([d.name,d.manager,d.location||'',hrs,d.sessions,d.overtime_sessions]);
+    if(d.note) rows.push(['  📝 '+d.note,'','','','','']);
+  }
+  var csv=rows.map(function(r){return r.map(function(c){return'"'+(c+'').replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='report_'+lastReportMonth+'_'+lastReportYear+'.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+function downloadReportPDF(){
+  if(!lastReportData.length){toast(T[lang].noReport||'No data');return;}
+  var t=T[lang];
+  var isDays=trackingMode==='days';
+  var monthName=t.MONTHS[lastReportMonth-1]+' '+lastReportYear;
+  var isRTL=lang==='he'||lang==='ar';
+  var rows='';
+  for(var i=0;i<lastReportData.length;i++){
+    var d=lastReportData[i];
+    var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
+    var val=isDays?(d.sessions+' '+(t.daysLbl||'days')):hrs;
+    var ot=d.overtime_sessions?('<span style="color:#d97706">+'+d.overtime_sessions+' OT</span>'):'';
+    var note=d.note?('<tr><td colspan="4" style="font-size:11px;color:#64748b;padding:2px 12px 8px;font-style:italic">📝 '+d.note+'</td></tr>'):'';
+    rows+=('<tr><td style="padding:10px 12px;font-weight:700">'+d.name+'</td>'
+      +'<td style="padding:10px 12px;color:#64748b">'+d.manager+'</td>'
+      +'<td style="padding:10px 12px;color:#64748b">'+(d.location||'—')+'</td>'
+      +'<td style="padding:10px 12px;font-weight:800;color:#4f46e5;text-align:end">'+val+' '+ot+'</td></tr>'+note);
+  }
+  var html='<!DOCTYPE html><html dir="'+(isRTL?'rtl':'ltr')+'" lang="'+lang+'">'
+    +'<head><meta charset="UTF-8"><title>WorkTrack Report</title>'
+    +'<style>body{font-family:Arial,sans-serif;padding:32px;color:#1e293b}'
+    +'h1{font-size:22px;color:#4f46e5;margin-bottom:4px}'
+    +'h2{font-size:14px;color:#94a3b8;font-weight:400;margin-bottom:24px}'
+    +'table{width:100%;border-collapse:collapse}'
+    +'thead tr{background:#4f46e5;color:#fff}'
+    +'thead td{padding:10px 12px;font-weight:700;font-size:13px}'
+    +'tbody tr:nth-child(even){background:#f8fafc}'
+    +'tbody tr:hover{background:#ede9fe}'
+    +'@media print{body{padding:16px}button{display:none}}'
+    +'</style></head><body>'
+    +'<h1>WorkTrack</h1><h2>'+monthName+'</h2>'
+    +'<table><thead><tr>'
+    +'<td>'+(t.workers||'Worker')+'</td><td>'+(t.managerLbl||'Manager')+'</td><td>Location</td>'
+    +'<td style="text-align:end">'+(isDays?(t.daysLbl||'Days'):'Hours')+'</td>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div style="margin-top:32px;text-align:center"><button onclick="window.print()" style="padding:10px 28px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 Print / Save as PDF</button></div>'
+    +'</body></html>';
+  var w=window.open('','_blank','width=800,height=600');
+  w.document.write(html); w.document.close();
 }
 
 // ── Locations Management ──────────────────────────────────────────────────

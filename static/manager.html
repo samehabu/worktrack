@@ -234,11 +234,6 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
           <span id="lbl-hrs">hrs</span>
           <button class="shift-save" id="shift-save" onclick="saveShift()">Save</button>
         </div>
-        <div class="shift-row" style="margin-top:8px">
-          <span id="lbl-tracking-mode">Tracking:</span>
-          <button id="track-hours-btn" onclick="saveTrackingMode('hours')" class="shift-save" style="background:#4f46e5">Hours</button>
-          <button id="track-days-btn" onclick="saveTrackingMode('days')" class="shift-save" style="background:#e2e8f0;color:#64748b">Days</button>
-        </div>
       </div>
       <button class="day-btn" id="day-btn" onclick="toggleDay()">—</button>
     </div>
@@ -343,27 +338,6 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
       </button>
       <div class="collapsible" id="conflict-panel">
         <div id="conflict-list" style="padding:4px 0"></div>
-      </div>
-    </div>
-    <div id="ai-rep-wrap" style="display:none">
-      <button class="panel-btn" onclick="toggleAIReports()">🤖 <span id="lbl-ai-reports">AI Monthly Reports</span></button>
-      <div class="collapsible" id="ai-rep-panel">
-        <div class="card-label" id="lbl-apikey">Anthropic API Key</div>
-        <div class="add-row" style="margin-bottom:16px">
-          <input type="password" id="api-key-inp" autocomplete="off" style="flex:1;min-width:120px;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.9rem;outline:none"/>
-          <button class="btn-add" onclick="saveApiKey()"><span id="lbl-apikey-btn">Save</span></button>
-        </div>
-        <div class="rep-top" style="margin-bottom:12px">
-          <select id="ai-rep-lang" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem">
-            <option value="he">עברית</option>
-            <option value="en">English</option>
-            <option value="ar">العربية</option>
-          </select>
-          <select id="ai-rep-mon" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem"></select>
-          <select id="ai-rep-yr" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.84rem"></select>
-          <button class="btn-add" id="gen-btn" onclick="generateAIReports()"><span id="lbl-gen-btn">Generate</span></button>
-        </div>
-        <div id="ai-rep-list"></div>
       </div>
     </div>
     <!-- My Account -->
@@ -807,7 +781,6 @@ function enterApp(){
     g('mgr-wrap').style.display='block';
     g('loc-wrap').style.display='block';
     g('conflict-wrap').style.display='block';
-    g('ai-rep-wrap').style.display='block';
     g('rep-wrap').style.display='block';
     loadConflictAlerts();
     activeLocId=null;
@@ -858,7 +831,7 @@ function load(){
     rosterIds=results[4]; if(results[5].length) allWorkers=results[5];
     takenIds=results[6]||[];
     shiftMs=parseFloat(settings.shift_hours||8)*3600000;
-    trackingMode=settings.tracking_mode||'hours';
+    trackingMode='days';
     // dayActive is now per-location — computed in renderDayCard from locations array
     g('shift-input').value=settings.shift_hours||8;
     hideErr();
@@ -941,7 +914,6 @@ function _activeLoc(){
 }
 function renderDayCard(){
   var t=T[lang];
-  renderTrackingButtons();
   g('day-lbl').textContent=t.dayClosedLbl;
   var loc=_activeLoc();
   if(!loc){
@@ -1055,23 +1027,6 @@ async function confirmCloseDay(){
 function saveShift(){
   var v=parseFloat(g('shift-input').value)||8;
   api('/api/settings',{method:'POST',body:{shift_hours:v}}).then(function(){load()}).catch(function(){});
-}
-function saveTrackingMode(mode){
-  api('/api/settings',{method:'POST',body:{tracking_mode:mode}}).then(function(){load()}).catch(function(){});
-}
-function renderTrackingButtons(){
-  var t=T[lang];
-  var hBtn=g('track-hours-btn'), dBtn=g('track-days-btn');
-  if(!hBtn||!dBtn) return;
-  hBtn.textContent=t.trackHours;
-  dBtn.textContent=t.trackDays;
-  if(trackingMode==='days'){
-    hBtn.style.background='#e2e8f0'; hBtn.style.color='#64748b';
-    dBtn.style.background='#4f46e5'; dBtn.style.color='#fff';
-  } else {
-    hBtn.style.background='#4f46e5'; hBtn.style.color='#fff';
-    dBtn.style.background='#e2e8f0'; dBtn.style.color='#64748b';
-  }
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────
@@ -1678,7 +1633,6 @@ async function removeManager(id,name){
 }
 
 // ── AI Reports ────────────────────────────────────────────────────────────
-var aiRepOpen=false, aiRepInit=false;
 var conflictsOpen=false;
 function toggleConflicts(){
   conflictsOpen=!conflictsOpen;
@@ -1717,94 +1671,6 @@ async function dismissConflict(id){
     loadConflictAlerts();
   }catch(e){}
 }
-function toggleAIReports(){
-  aiRepOpen=!aiRepOpen;
-  g('ai-rep-panel').classList.toggle('open',aiRepOpen);
-  if(aiRepOpen) initAIRepPanel();
-}
-function initAIRepPanel(){
-  var t=T[lang], now=new Date();
-  g('lbl-apikey').textContent=t.apiKeyLbl;
-  g('lbl-apikey-btn').textContent=t.saveBtn||'Save';
-  g('lbl-gen-btn').textContent=t.generateReports;
-  g('lbl-ai-reports').textContent=t.aiReports;
-  if(!aiRepInit){
-    aiRepInit=true;
-    var mon=g('ai-rep-mon'), yr=g('ai-rep-yr');
-    T.en.MONTHS.forEach(function(m,i){
-      var o=new Option(T[lang].MONTHS[i],i+1);
-      if(i===now.getMonth()-1||(now.getMonth()===0&&i===11)) o.selected=true;
-      mon.add(o);
-    });
-    for(var y=now.getFullYear();y>=now.getFullYear()-3;y--){
-      var o=new Option(y,y); if(y===now.getFullYear()) o.selected=true; yr.add(o);
-    }
-  }
-  loadAIReports();
-}
-async function saveApiKey(){
-  var t=T[lang], key=g('api-key-inp').value.trim();
-  if(!key) return;
-  try{
-    await api('/api/settings/apikey',{method:'POST',body:{key:key}});
-    toast(t.apiKeySaved); g('api-key-inp').value='';
-  } catch(e){toast(t.errServer)}
-}
-async function generateAIReports(){
-  var t=T[lang], btn=g('gen-btn');
-  btn.disabled=true; g('lbl-gen-btn').textContent=t.generating;
-  var month=+g('ai-rep-mon').value, year=+g('ai-rep-yr').value, lang2=g('ai-rep-lang').value;
-  try{
-    var r=await api('/api/reports/generate',{method:'POST',body:{month:month,year:year,lang:lang2}});
-    var d=await r.json();
-    if(d.errors&&d.errors.length) toast('⚠️ '+d.errors[0]);
-    else toast(t.saved);
-    loadAIReports();
-  } catch(e){toast(t.errServer)}
-  btn.disabled=false; g('lbl-gen-btn').textContent=t.generateReports;
-}
-async function loadAIReports(){
-  try{
-    var rows=await(await api('/api/reports')).json();
-    renderAIReports(rows);
-  } catch(e){}
-}
-function renderAIReports(rows){
-  var t=T[lang], body=g('ai-rep-list');
-  if(!rows.length){body.innerHTML='<div style="color:#94a3b8;font-size:.85rem;padding:12px 0">'+t.noReports+'</div>';return}
-  var html='';
-  var months=T[lang].MONTHS;
-  for(var i=0;i<rows.length;i++){
-    var r=rows[i];
-    var dt=new Date(r.generated_at);
-    var label=r.worker_name+' — '+months[r.month-1]+' '+r.year;
-    var sub=dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    html+=('<div class="rep-row" style="flex-wrap:wrap;gap:8px">'
-      +'<div style="flex:1;min-width:0">'
-      +'<div class="rn">'+label+'</div>'
-      +'<div class="rm2">'+sub+'</div>'
-      +'</div>'
-      +'<button class="edit-btn" onclick="viewAIReport(\''+r.id+'\')">📄 '+t.viewReport+'</button>'
-      +'<button class="forceout-btn" onclick="deleteAIReport(\''+r.id+'\')">'+t.deleteReport+'</button>'
-      +'</div>');
-  }
-  body.innerHTML=html;
-}
-async function viewAIReport(rid){
-  try{
-    var r=await(await api('/api/reports/'+rid)).json();
-    var months=T[lang].MONTHS;
-    g('report-modal-title').textContent=r.worker_name+' — '+months[r.month-1]+' '+r.year;
-    g('report-modal-body').textContent=r.content;
-    g('report-modal').classList.add('open');
-  } catch(e){toast(T[lang].errServer)}
-}
-async function deleteAIReport(rid){
-  if(!confirm(T[lang].confirmRemove+'?')) return;
-  await api('/api/reports/'+rid,{method:'DELETE'});
-  toast(T[lang].removed); loadAIReports();
-}
-
 // ── Worker Notes ──────────────────────────────────────────────────────────
 var editingNoteWid=null;
 function openNoteModal(wid){

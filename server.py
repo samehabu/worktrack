@@ -815,7 +815,7 @@ def report():
         worker_rows = db.execute('SELECT id, note, wage_per_day FROM workers').fetchall()
         worker_notes = {r['id']: r['note'] or '' for r in worker_rows}
         worker_wages = {r['id']: float(r['wage_per_day'] or 0) for r in worker_rows}
-    tracking_mode = get_setting('tracking_mode') or 'hours'
+    tracking_mode = 'days'
     result = {}
     for l in [dict(r) for r in logs]:
         d = datetime.datetime.fromtimestamp(l['clock_in'] / 1000)

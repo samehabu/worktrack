@@ -732,8 +732,9 @@ def report():
             key=lambda x: -x['days'])
         gross = round(result[wid]['sessions'] * result[wid]['wage_per_day'], 2)
         note = result[wid].get('note', '') or ''
-        deductions = sum(float(m) for m in _re.findall(r'(?<![+\d])-\s*(\d+(?:\.\d+)?)', note))
+        deductions = sum(float(m) for m in _re.findall(r'(?<!\d)-\s*(\d+(?:\.\d+)?)', note))
         bonuses = sum(float(m) for m in _re.findall(r'\+\s*(\d+(?:\.\d+)?)', note))
+        bonuses += sum(float(m) for m in _re.findall(r'(\d+(?:\.\d+)?)\s*\+(?!\d)', note))
         result[wid]['deductions'] = round(deductions, 2)
         result[wid]['bonuses'] = round(bonuses, 2)
         result[wid]['total_wage'] = round(gross - deductions + bonuses, 2)

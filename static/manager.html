@@ -1387,8 +1387,8 @@ async function buildReport(){
       if(d.wage_per_day){
         var wageTotal=d.total_wage||0;
         var gross=Math.round(d.sessions*d.wage_per_day*100)/100;
-        var bonusLine=d.bonuses?'<div style="font-size:.75rem;color:#16a34a;margin-top:1px">➕ Bonus: +₪'+d.bonuses+'</div>':'';
-        var dedLine2=d.deductions?'<div style="font-size:.75rem;color:#ef4444;margin-top:1px">➖ Deduction: −₪'+d.deductions+'</div>':'';
+        var bonusLine=(d.bonuses&&d.bonuses>0)?'<div style="font-size:.75rem;color:#16a34a;font-weight:700;margin-top:1px">➕ Bonus: +₪'+d.bonuses+'</div>':'';
+        var dedLine2=(d.deductions&&d.deductions>0)?'<div style="font-size:.75rem;color:#ef4444;font-weight:700;margin-top:1px">➖ Deduction: −₪'+d.deductions+'</div>':'';
         wageHtml='<div style="font-size:.75rem;color:#64748b;margin-top:3px">💳 '+(t.wageLbl||'Daily Wage')+': <strong>₪'+d.wage_per_day+'</strong> '+(t.perDay||'/ day')+'</div>'
           +'<div style="font-size:.75rem;color:#64748b;margin-top:1px">📅 '+d.sessions+' '+(t.daysLbl||'d')+' × ₪'+d.wage_per_day+' = ₪'+gross+'</div>'
           +bonusLine+dedLine2

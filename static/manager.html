@@ -1437,8 +1437,9 @@ function downloadReportExcel(){
   var bonHdr=t.bonusLbl||'Plus / Bonus';
   var dedHdr=t.deductionLbl||'Minus / Deduction';
   var totalHdr=t.totalWage||'Total Wage';
-  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr]);
-  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr]);
+  var notesHdr=t.noteTitle||'Notes';
+  if(isDays) rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location',t.daysLbl||'Days',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr,notesHdr]);
+  else rows.push([t.workers||'Worker',t.managerLbl||'Manager','Location','Hours',t.sessions||'Shifts',t.overtimeSessions||'Overtime',dailyHdr,bonHdr,dedHdr,totalHdr,notesHdr]);
   for(var i=0;i<lastReportData.length;i++){
     var d=lastReportData[i];
     var hrs=Math.floor(d.total_ms/3600000)+'h '+Math.floor(d.total_ms%3600000/60000)+'m';
@@ -1453,12 +1454,9 @@ function downloadReportExcel(){
     var bonVal=exBon>0?'+₪'+exBon:'';
     var dedVal=exDed>0?'-₪'+exDed:'';
     var totalVal=d.wage_per_day?'₪'+d.total_wage:'';
-    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal]);
-    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal]);
-    if(d.note){
-      var noteLines=d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l});
-      noteLines.forEach(function(line){rows.push(['  📝 '+line,'','','','','','','','','']);});
-    }
+    var noteVal=d.note?d.note.split(/\n/).map(function(l){return l.trim()}).filter(function(l){return l}).join(' | '):'';
+    if(isDays) rows.push([d.name,d.manager,locSummary||d.location||'',d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal,noteVal]);
+    else rows.push([d.name,d.manager,locSummary||d.location||'',hrs,d.sessions,d.overtime_sessions,dailyWage,bonVal,dedVal,totalVal,noteVal]);
   }
   // totals row
   var exTotalWage=0, exTotalDays=0, exTotalHours=0;
@@ -1470,7 +1468,7 @@ function downloadReportExcel(){
   exTotalWage=Math.round(exTotalWage*100)/100;
   var exHrsTot=Math.floor(exTotalHours/3600000)+'h '+Math.floor(exTotalHours%3600000/60000)+'m';
   rows.push([]);
-  rows.push([t.totalWage||'Total Wage','','',isDays?exTotalDays:exHrsTot,'','','','','₪'+exTotalWage]);
+  rows.push([t.totalWage||'Total Wage','','',isDays?exTotalDays:exHrsTot,'','','','','₪'+exTotalWage,'']);
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb,ws,'Report');

@@ -692,6 +692,7 @@ var activeLocId = null;
 var editingLogId = null;
 var failCount = 0;
 var rosterIds = [];
+var takenIds = [];
 var allWorkers = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -840,10 +841,12 @@ function load(){
     api('/api/locations').then(function(r){return r.ok?r.json():[]}),
     api('/api/managers').then(function(r){return r.ok?r.json():[]}),
     api(rosterUrl).then(function(r){return r.ok?r.json():[]}),
-    (currentUser&&currentUser.is_admin?api('/api/workers').then(function(r){return r.ok?r.json():[]}):Promise.resolve([]))
+    (currentUser&&currentUser.is_admin?api('/api/workers').then(function(r){return r.ok?r.json():[]}):Promise.resolve([])),
+    (!currentUser.is_admin&&currentUser.location_id?api('/api/roster/taken?date='+today).then(function(r){return r.ok?r.json():[]}):Promise.resolve([]))
   ]).then(function(results){
     workers=results[0]; var settings=results[1]; locations=results[2]; managers=results[3];
     rosterIds=results[4]; if(results[5].length) allWorkers=results[5];
+    takenIds=results[6]||[];
     shiftMs=parseFloat(settings.shift_hours||8)*3600000;
     trackingMode=settings.tracking_mode||'hours';
     // dayActive is now per-location — computed in renderDayCard from locations array
@@ -1113,7 +1116,10 @@ function renderList(){
     } else {
       var workerLoc=currentUser.location_id||activeLocId;
       var inRoster=currentUser.is_admin||(rosterIds.indexOf(w.id)>=0);
-      if(inRoster){
+      var isTaken=!currentUser.is_admin&&takenIds.indexOf(w.id)>=0;
+      if(isTaken){
+        clockBtnHtml='<span style="font-size:.75rem;color:#ef4444;padding:4px 8px;background:#fee2e2;border-radius:6px">🚫 '+(t.unavailable||'Unavailable')+'</span>';
+      } else if(inRoster){
         clockBtnHtml='<button class="forceout-btn" style="background:#dcfce7;color:#16a34a" onclick="managerClock(\''+w.id+'\',\''+workerLoc+'\')">'+t.clockInBtn+'</button>';
       } else {
         clockBtnHtml='<span style="font-size:.75rem;color:#cbd5e1;padding:4px 8px">'+( t.notInRoster||'Not in roster')+'</span>';

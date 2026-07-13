@@ -421,6 +421,18 @@ def get_roster():
                           (date, loc_id)).fetchall()
     return jsonify([r['worker_id'] for r in rows])
 
+@app.route('/api/roster/taken', methods=['GET'])
+def get_taken_workers():
+    s, err = require_auth(request)
+    if err: return err
+    date = request.args.get('date', datetime.date.today().isoformat())
+    loc_id = s['location_id']
+    with get_db() as db:
+        rows = db.execute(
+            'SELECT worker_id FROM daily_roster WHERE date=? AND location_id!=?',
+            (date, loc_id or '')).fetchall()
+    return jsonify([r['worker_id'] for r in rows])
+
 @app.route('/api/roster', methods=['POST', 'OPTIONS'])
 def set_roster():
     if request.method == 'OPTIONS': return '', 200

@@ -429,6 +429,20 @@ def set_roster():
         return jsonify({'error': 'forbidden'}), 403
     worker_ids = d.get('worker_ids', [])
     with get_db() as db:
+        # Check for workers already assigned to a different location today
+        conflicts = []
+        for wid in worker_ids:
+            row = db.execute(
+                '''SELECT r.location_id, l.name as loc_name, w.name as worker_name
+                   FROM daily_roster r
+                   JOIN locations l ON l.id=r.location_id
+                   JOIN workers w ON w.id=r.worker_id
+                   WHERE r.date=? AND r.worker_id=? AND r.location_id!=?''',
+                (date, wid, loc_id)).fetchone()
+            if row:
+                conflicts.append({'worker': row['worker_name'], 'location': row['loc_name']})
+        if conflicts:
+            return jsonify({'error': 'conflict', 'conflicts': conflicts}), 409
         db.execute('DELETE FROM daily_roster WHERE date=? AND location_id=?', (date, loc_id))
         for wid in worker_ids:
             db.execute('INSERT OR IGNORE INTO daily_roster (date,worker_id,location_id) VALUES (?,?,?)',

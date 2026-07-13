@@ -1178,6 +1178,12 @@ async function saveRoster(){
   var locId=currentUser.location_id;
   try{
     var r=await api('/api/roster',{method:'POST',body:{date:today,location_id:locId,worker_ids:ids}});
+    if(r.status===409){
+      var d=await r.json();
+      var msg=d.conflicts.map(function(c){return c.worker+' ('+c.location+')'}).join(', ');
+      alert((T[lang].rosterConflict||'Already assigned to another location today')+': '+msg);
+      return;
+    }
     if(!r.ok) throw new Error();
     rosterIds=ids;
     g('roster-modal').classList.remove('open');

@@ -562,6 +562,7 @@ var T = {
     clockInBtn:'Clock In',clockOutBtn:'Clock Out',workerLocPh:'— Location —',
     noLocationWorker:'No location assigned',changeLocation:'Change Location',
     notInRoster:'Not in roster',unavailable:'Unavailable',rosterConflict:'Already assigned to another location today',
+    conflictsTitle:'Roster Conflicts',noConflicts:'No conflicts',conflictTriedToAdd:'tried to add worker already at',
     rosterTitle:"Today's Workers",rosterSub:'Select workers coming to your location today',manageRoster:"Manage Today's Workers",
     wageLbl:'Daily Wage',perDay:'₪ / day',totalWage:'Total Wage',wageCol:'Wage (₪)',bonusLbl:'Plus / Bonus',deductionLbl:'Minus / Deduction',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -619,6 +620,7 @@ var T = {
     clockInBtn:'تسجيل دخول',clockOutBtn:'تسجيل خروج',workerLocPh:'— الموقع —',
     noLocationWorker:'لا يوجد موقع محدد',changeLocation:'تغيير الموقع',
     notInRoster:'غير مسجل اليوم',unavailable:'غير متاح',rosterConflict:'معين بالفعل لموقع آخر اليوم',
+    conflictsTitle:'تعارضات التسجيل',noConflicts:'لا توجد تعارضات',conflictTriedToAdd:'حاول إضافة عامل مسجل بالفعل في',
     rosterTitle:'عمال اليوم',rosterSub:'اختر العمال الذين سيعملون في موقعك اليوم',manageRoster:'إدارة عمال اليوم',
     wageLbl:'الأجر اليومي',perDay:'₪ / يوم',totalWage:'إجمالي الأجر',wageCol:'الأجر (₪)',bonusLbl:'زيادة / مكافأة',deductionLbl:'ناقص / خصم',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -676,6 +678,7 @@ var T = {
     clockInBtn:'כניסה',clockOutBtn:'יציאה',workerLocPh:'— מיקום —',
     noLocationWorker:'לא הוגדר מיקום',changeLocation:'שנה מיקום',
     notInRoster:'לא ברשימת היום',unavailable:'לא זמין',rosterConflict:'כבר משובץ למיקום אחר היום',
+    conflictsTitle:'התנגשויות שיבוץ',noConflicts:'אין התנגשויות',conflictTriedToAdd:'ניסה להוסיף עובד שכבר משובץ ב',
     rosterTitle:'עובדי היום',rosterSub:'בחר עובדים שיגיעו למיקום שלך היום',manageRoster:'נהל עובדי היום',
     wageLbl:'שכר יומי',perDay:'₪ / יום',totalWage:'סה"כ שכר',wageCol:'שכר (₪)',bonusLbl:'פלוס / בונוס',deductionLbl:'מינוס / ניכוי',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -774,6 +777,7 @@ function applyLang(){
   g('lbl-swap-loc').textContent=t.swapLoc;
   g('lbl-swap-btn').textContent=t.swapBtn;
   g('lbl-accounts').textContent=t.accounts;
+  g('lbl-conflicts').textContent=t.conflictsTitle||'Roster Conflicts';
   g('lbl-add-mgr').textContent=t.addMgr;
   g('new-mgr-user').placeholder=t.mgrUserPh;
   g('new-mgr-pass').placeholder=t.mgrPassPh;
@@ -1684,8 +1688,9 @@ async function loadConflictAlerts(){
     var badge=g('conflict-badge');
     if(data.length){badge.textContent=data.length;badge.style.display='inline';}
     else{badge.style.display='none';}
+    var t=T[lang];
     var list=g('conflict-list');
-    if(!data.length){list.innerHTML='<div style="color:#94a3b8;font-size:.85rem;padding:8px 0">No conflicts</div>';return;}
+    if(!data.length){list.innerHTML='<div style="color:#94a3b8;font-size:.85rem;padding:8px 0">'+(t.noConflicts||'No conflicts')+'</div>';return;}
     var html='';
     for(var i=0;i<data.length;i++){
       var c=data[i];
@@ -1694,7 +1699,7 @@ async function loadConflictAlerts(){
         +'<div style="font-size:.82rem">'
         +'<strong>'+c.worker_name+'</strong> '
         +'<span style="color:#ef4444">⚠️</span> '
-        +'<span style="color:#64748b">'+c.manager_username+' ('+c.requesting_location_name+') tried to add worker already at <strong>'+c.existing_location_name+'</strong></span>'
+        +'<span style="color:#64748b">'+c.manager_username+' ('+c.requesting_location_name+') '+(t.conflictTriedToAdd||'tried to add worker already at')+' <strong>'+c.existing_location_name+'</strong></span>'
         +'<div style="color:#94a3b8;font-size:.75rem">'+c.date+' · '+dt+'</div>'
         +'</div>'
         +'<button class="del-btn" style="color:#94a3b8;flex-shrink:0" onclick="dismissConflict(\''+c.id+'\')">✕</button>'

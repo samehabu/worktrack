@@ -669,7 +669,25 @@ def day_open():
         return jsonify({'error': 'forbidden'}), 403
     with get_db() as db:
         db.execute('UPDATE locations SET day_active=1 WHERE id=?', (loc_id,))
-    return jsonify({'ok': True})
+        # Auto clock-in all workers on today's roster for this location
+        today = datetime.date.today().isoformat()
+        now = int(time.time() * 1000)
+        loc = db.execute(
+            'SELECT l.name, m.username FROM locations l LEFT JOIN managers m ON m.location_id=l.id WHERE l.id=?',
+            (loc_id,)).fetchone()
+        location_name = loc['name'] if loc else ''
+        rostered = db.execute(
+            '''SELECT w.* FROM workers w
+               JOIN daily_roster r ON r.worker_id=w.id
+               WHERE r.date=? AND r.location_id=? AND w.working=0''',
+            (today, loc_id)).fetchall()
+        for w in rostered:
+            manager_name = (loc['username'] if loc and loc['username'] else w['manager'])
+            db.execute('UPDATE workers SET working=1, clock_start=?, current_location_id=? WHERE id=?',
+                       (now, loc_id, w['id']))
+            db.execute('INSERT INTO logs VALUES (?,?,?,?,?,NULL,NULL,0,0,NULL,?,?,0)',
+                       (uid(), w['id'], w['name'], manager_name, now, loc_id, location_name))
+    return jsonify({'ok': True, 'clocked_in': len(rostered)})
 
 @app.route('/api/day/close', methods=['POST'])
 def day_close():

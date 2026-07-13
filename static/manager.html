@@ -903,11 +903,8 @@ function visibleWorkers(){
   var search=(g('worker-search')?g('worker-search').value.trim().toLowerCase():'');
   var filterLoc=(g('worker-filter-loc')?g('worker-filter-loc').value:'');
   var base;
-  if(!currentUser.is_admin) base=workers;
-  else if(!activeLocId) base=workers;
-  else base=workers.filter(function(w){return w.location_id===activeLocId;});
+  base=workers;
   if(search) base=base.filter(function(w){return w.name.toLowerCase().indexOf(search)>=0;});
-  if(filterLoc) base=base.filter(function(w){return w.location_id===filterLoc;});
   return base;
 }
 
@@ -1102,14 +1099,10 @@ function renderList(){
         otBtnHtml='<button class="forceout-btn" style="background:'+(otOn?'#fef3c7;color:#d97706;border:1.5px solid #fde68a':'#f1f5f9;color:#64748b')+'" onclick="toggleOTSession(\''+w.id+'\')">⏱ '+(otOn?t.otSessionOn:t.otSessionOff)+'</button>';
       }
     } else {
-      var workerLoc=w.location_id||currentUser.location_id||activeLocId;
+      var workerLoc=currentUser.location_id||activeLocId;
       clockBtnHtml='<button class="forceout-btn" style="background:#dcfce7;color:#16a34a" onclick="managerClock(\''+w.id+'\',\''+workerLoc+'\')">'+t.clockInBtn+'</button>';
     }
     var locLabel='';
-    if(currentUser.is_admin&&!activeLocId){
-      var wloc2=locations.find(function(l){return l.id===w.location_id});
-      locLabel='<span style="font-size:.72rem;background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:999px;margin-inline-start:6px">'+(wloc2?wloc2.name:t.noLocationWorker)+'</span>';
-    }
     html+=('<div class="'+cls+'">'
       +'<div class="av" style="background:'+clr(w.name)+'">'+ini(w.name)+'</div>'
       +'<div class="winfo"><div class="wname">'+w.name+locLabel+'</div>'
@@ -1117,7 +1110,7 @@ function renderList(){
       +timerHtml+noteHtml+'</div>'
       +'<div class="wactions">'+clockBtnHtml+otBtnHtml
       +'<button class="del-btn" style="color:#94a3b8;font-size:.9rem" onclick="openNoteModal(\''+w.id+'\')">📝</button>'
-      +(currentUser.is_admin?'<button class="del-btn" style="color:#94a3b8" onclick="openMoveWorkerModal(\''+w.id+'\',\''+w.name.replace(/'/g,"\\'")+(w.location_id?'\',\''+w.location_id:'')+'\'  )">📍</button>':'')
+      +''
       +'<button class="del-btn" onclick="removeWorker(\''+w.id+'\',\''+w.name+'\')">✕</button>'
       +'</div></div>');
   }
@@ -1127,12 +1120,9 @@ async function addWorker(){
   var t=T[lang];
   var name=g('iname').value.trim();
   if(!name) return;
-  var locSel=g('worker-loc-sel');
-  var locId=locSel.style.display!=='none'?locSel.value:(currentUser.location_id||null);
-  if(!locId){toast(t.noLocationWorker);return;}
   var btn=g('add-btn'); btn.disabled=true;
   try{
-    var r=await api('/api/workers',{method:'POST',body:{name:name,location_id:locId}});
+    var r=await api('/api/workers',{method:'POST',body:{name:name}});
     if(!r.ok) throw new Error();
     g('iname').value='';
     toast(name+' '+t.added); await load();

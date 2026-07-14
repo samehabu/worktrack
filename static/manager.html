@@ -503,7 +503,7 @@ var T = {
     dayClosedLbl:'Day Status',dayClosed:'Day Closed',dayOpen:'Day Open',
     dayClosedSub:'Work day is not active',dayOpenSub:'Workers can clock in',
     openDay:'Open Day',closeDay:'Close Day',confirmClose:'Close the work day? All active workers will be clocked out.',
-    workers:'Workers',working:'On Shift',thisMonth:'This Month',
+    workers:'Workers',working:'On Shift',thisMonth:'Working Days This Month',
     addWorker:'Add Worker',workerPh:'Worker name',mgrPh:'Manager name',addBtn:'Add',
     allWorkers:'All Workers',noWorkers:'No workers yet — add one above.',
     forceOut:'End Shift',confirmRemove:'Remove',
@@ -562,7 +562,7 @@ var T = {
     dayClosedLbl:'حالة اليوم',dayClosed:'اليوم مغلق',dayOpen:'اليوم مفتوح',
     dayClosedSub:'يوم العمل غير نشط',dayOpenSub:'يمكن للعمال تسجيل الدخول',
     openDay:'فتح يوم العمل',closeDay:'إغلاق يوم العمل',confirmClose:'إغلاق يوم العمل؟ سيتم إخراج جميع العمال.',
-    workers:'العمال',working:'في المناوبة',thisMonth:'هذا الشهر',
+    workers:'العمال',working:'في المناوبة',thisMonth:'أيام العمل هذا الشهر',
     addWorker:'إضافة عامل',workerPh:'اسم العامل',mgrPh:'اسم المدير',addBtn:'إضافة',
     allWorkers:'جميع العمال',noWorkers:'لا يوجد عمال بعد.',
     forceOut:'إنهاء المناوبة',confirmRemove:'حذف',
@@ -621,7 +621,7 @@ var T = {
     dayClosedLbl:'סטטוס יום',dayClosed:'היום סגור',dayOpen:'היום פתוח',
     dayClosedSub:'יום העבודה לא פעיל',dayOpenSub:'העובדים יכולים לרשום נוכחות',
     openDay:'פתח יום עבודה',closeDay:'סגור יום עבודה',confirmClose:'לסגור את יום העבודה? כל העובדים הפעילים יצאו.',
-    workers:'עובדים',working:'במשמרת',thisMonth:'החודש',
+    workers:'עובדים',working:'במשמרת',thisMonth:'ימי עבודה החודש',
     addWorker:'הוסף עובד',workerPh:'שם עובד',mgrPh:'שם מנהל',addBtn:'הוסף',
     allWorkers:'כל העובדים',noWorkers:'אין עובדים עדיין — הוסף אחד למעלה.',
     forceOut:'סיים משמרת',confirmRemove:'הסר',
@@ -1041,14 +1041,14 @@ function renderStats(){
   var vis=visibleWorkers();
   g('st-total').textContent=vis.length;
   g('st-on').textContent=vis.filter(function(w){return w.working}).length;
-  // Month total from logs
-  var now=new Date(), m=now.getMonth(), y=now.getFullYear(), ms=0;
+  // Month total working days from logs
+  var now=new Date(), m=now.getMonth(), y=now.getFullYear(), dayCount=0;
   allLogs.forEach(function(l){
     if(!l.clock_out) return;
     var d=new Date(l.clock_in);
-    if(d.getMonth()===m&&d.getFullYear()===y) ms+=l.duration_ms||0;
+    if(d.getMonth()===m&&d.getFullYear()===y) dayCount++;
   });
-  g('st-month').textContent=fmt(ms);
+  g('st-month').textContent=dayCount;
 }
 
 // ── Worker List ───────────────────────────────────────────────────────────

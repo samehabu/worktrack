@@ -49,6 +49,9 @@ def init_db():
         db.execute('''CREATE TABLE IF NOT EXISTS daily_roster (
             date TEXT, worker_id TEXT, location_id TEXT,
             PRIMARY KEY (date, worker_id))''')
+        db.execute('''CREATE TABLE IF NOT EXISTS day_opens (
+            date TEXT, location_id TEXT,
+            PRIMARY KEY (date, location_id))''')
         db.execute('''CREATE TABLE IF NOT EXISTS conflict_alerts (
             id TEXT PRIMARY KEY, date TEXT, worker_id TEXT, worker_name TEXT,
             requesting_location_id TEXT, requesting_location_name TEXT,
@@ -733,6 +736,7 @@ def day_open():
         db.execute('UPDATE locations SET day_active=1 WHERE id=?', (loc_id,))
         # Auto clock-in all workers on today's roster for this location
         today = datetime.date.today().isoformat()
+        db.execute('INSERT OR IGNORE INTO day_opens (date, location_id) VALUES (?,?)', (today, loc_id))
         now = int(time.time() * 1000)
         loc = db.execute(
             'SELECT l.name, m.username FROM locations l LEFT JOIN managers m ON m.location_id=l.id WHERE l.id=?',
@@ -750,6 +754,25 @@ def day_open():
             db.execute('INSERT INTO logs VALUES (?,?,?,?,?,NULL,NULL,0,0,NULL,?,?,0)',
                        (uid(), w['id'], w['name'], manager_name, now, loc_id, location_name))
     return jsonify({'ok': True, 'clocked_in': len(rostered)})
+
+@app.route('/api/day/opens', methods=['GET'])
+def day_opens_count():
+    s, err = require_auth(request)
+    if err: return err
+    month = int(request.args.get('month', time.localtime().tm_mon))
+    year  = int(request.args.get('year',  time.localtime().tm_year))
+    prefix = f'{year:04d}-{month:02d}-'
+    loc_id = None if s['is_admin'] else s['location_id']
+    with get_db() as db:
+        if loc_id:
+            row = db.execute(
+                "SELECT COUNT(*) c FROM day_opens WHERE date LIKE ? AND location_id=?",
+                (prefix + '%', loc_id)).fetchone()
+        else:
+            row = db.execute(
+                "SELECT COUNT(DISTINCT date) c FROM day_opens WHERE date LIKE ?",
+                (prefix + '%',)).fetchone()
+    return jsonify({'days': row['c']})
 
 @app.route('/api/day/close', methods=['POST'])
 def day_close():

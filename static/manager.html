@@ -1041,14 +1041,10 @@ function renderStats(){
   var vis=visibleWorkers();
   g('st-total').textContent=vis.length;
   g('st-on').textContent=vis.filter(function(w){return w.working}).length;
-  // Month total working days from logs
-  var now=new Date(), m=now.getMonth(), y=now.getFullYear(), dayCount=0;
-  allLogs.forEach(function(l){
-    if(!l.clock_out) return;
-    var d=new Date(l.clock_in);
-    if(d.getMonth()===m&&d.getFullYear()===y) dayCount++;
-  });
-  g('st-month').textContent=dayCount;
+  // Month total working days = days the manager opened the day
+  api('/api/day/opens').then(function(r){return r.ok?r.json():null}).then(function(d){
+    if(d) g('st-month').textContent=d.days;
+  }).catch(function(){});
 }
 
 // ── Worker List ───────────────────────────────────────────────────────────

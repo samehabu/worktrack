@@ -516,7 +516,8 @@ def reset_data():
     if err: return err
     if not s['is_admin']: return jsonify({'error': 'admin_only'}), 403
     with get_db() as db:
-        db.execute('DELETE FROM workers')
+        # keep workers (names, wages, notes) — clear their activity only
+        db.execute('UPDATE workers SET working=0, clock_start=NULL, current_location_id=NULL, overtime_active=0')
         db.execute('DELETE FROM logs')
         db.execute('DELETE FROM daily_roster')
         db.execute('DELETE FROM conflict_alerts')

@@ -1,4 +1,4 @@
-const CACHE = 'worktrack-v5';
+const CACHE = 'worktrack-v6';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

@@ -509,6 +509,22 @@ def set_roster():
                        (date, wid, loc_id))
     return jsonify({'ok': True})
 
+@app.route('/api/reset_data', methods=['POST', 'OPTIONS'])
+def reset_data():
+    if request.method == 'OPTIONS': return '', 200
+    s, err = require_auth(request)
+    if err: return err
+    if not s['is_admin']: return jsonify({'error': 'admin_only'}), 403
+    with get_db() as db:
+        db.execute('DELETE FROM workers')
+        db.execute('DELETE FROM logs')
+        db.execute('DELETE FROM daily_roster')
+        db.execute('DELETE FROM conflict_alerts')
+        db.execute('DELETE FROM day_opens')
+        db.execute('DELETE FROM reports')
+        db.execute('UPDATE locations SET day_active=0')
+    return jsonify({'ok': True})
+
 @app.route('/api/conflict_alerts', methods=['GET'])
 def get_conflict_alerts():
     s, err = require_auth(request)

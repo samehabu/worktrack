@@ -340,6 +340,10 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
         <div id="conflict-list" style="padding:4px 0"></div>
       </div>
     </div>
+    <!-- Reset data (admin only) -->
+    <div id="reset-wrap" style="display:none">
+      <button class="panel-btn" style="color:#ef4444" onclick="resetAllData()">🗑 <span id="lbl-reset">Reset All Data</span></button>
+    </div>
     <!-- My Account -->
     <button class="panel-btn" onclick="toggleSecurity()">🔐 <span id="lbl-security">My Account</span></button>
     <div class="collapsible" id="sec-panel">
@@ -544,6 +548,8 @@ var T = {
     notInRoster:'Not in roster',unavailable:'Unavailable',rosterConflict:'Already assigned to another location today',
     conflictsTitle:'Roster Conflicts',noConflicts:'No conflicts',conflictTriedToAdd:'tried to add worker already at',
     daysWorkedLbl:'Days worked (this month)',
+    resetLbl:'Reset All Data',resetConfirm1:'Delete ALL workers, logs, rosters and reports? This cannot be undone.',
+    resetConfirm2:'Are you absolutely sure? All data will be permanently deleted.',resetDone:'All data deleted',
     rosterTitle:"Today's Workers",rosterSub:'Select workers coming to your location today',manageRoster:"Manage Today's Workers",
     wageLbl:'Daily Wage',perDay:'₪ / day',totalWage:'Total Wage',wageCol:'Wage (₪)',bonusLbl:'Plus / Bonus',deductionLbl:'Minus / Deduction',
     MONTHS:['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -603,6 +609,8 @@ var T = {
     notInRoster:'غير مسجل اليوم',unavailable:'غير متاح',rosterConflict:'معين بالفعل لموقع آخر اليوم',
     conflictsTitle:'تعارضات التسجيل',noConflicts:'لا توجد تعارضات',conflictTriedToAdd:'حاول إضافة عامل مسجل بالفعل في',
     daysWorkedLbl:'أيام العمل (هذا الشهر)',
+    resetLbl:'حذف جميع البيانات',resetConfirm1:'حذف جميع العمال والسجلات والتقارير؟ لا يمكن التراجع.',
+    resetConfirm2:'هل أنت متأكد تماماً؟ سيتم حذف جميع البيانات نهائياً.',resetDone:'تم حذف جميع البيانات',
     rosterTitle:'عمال اليوم',rosterSub:'اختر العمال الذين سيعملون في موقعك اليوم',manageRoster:'إدارة عمال اليوم',
     wageLbl:'الأجر اليومي',perDay:'₪ / يوم',totalWage:'إجمالي الأجر',wageCol:'الأجر (₪)',bonusLbl:'زيادة / مكافأة',deductionLbl:'ناقص / خصم',
     MONTHS:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -662,6 +670,8 @@ var T = {
     notInRoster:'לא ברשימת היום',unavailable:'לא זמין',rosterConflict:'כבר משובץ למיקום אחר היום',
     conflictsTitle:'התנגשויות שיבוץ',noConflicts:'אין התנגשויות',conflictTriedToAdd:'ניסה להוסיף עובד שכבר משובץ ב',
     daysWorkedLbl:'ימי עבודה (החודש)',
+    resetLbl:'איפוס כל הנתונים',resetConfirm1:'למחוק את כל העובדים, היומנים והדוחות? לא ניתן לבטל.',
+    resetConfirm2:'בטוח לגמרי? כל הנתונים יימחקו לצמיתות.',resetDone:'כל הנתונים נמחקו',
     rosterTitle:'עובדי היום',rosterSub:'בחר עובדים שיגיעו למיקום שלך היום',manageRoster:'נהל עובדי היום',
     wageLbl:'שכר יומי',perDay:'₪ / יום',totalWage:'סה"כ שכר',wageCol:'שכר (₪)',bonusLbl:'פלוס / בונוס',deductionLbl:'מינוס / ניכוי',
     MONTHS:['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -761,6 +771,7 @@ function applyLang(){
   g('lbl-swap-btn').textContent=t.swapBtn;
   g('lbl-accounts').textContent=t.accounts;
   g('lbl-conflicts').textContent=t.conflictsTitle||'Roster Conflicts';
+  g('lbl-reset').textContent=t.resetLbl||'Reset All Data';
   g('lbl-add-mgr').textContent=t.addMgr;
   g('new-mgr-user').placeholder=t.mgrUserPh;
   g('new-mgr-pass').placeholder=t.mgrPassPh;
@@ -788,6 +799,7 @@ function enterApp(){
     g('mgr-wrap').style.display='block';
     g('loc-wrap').style.display='block';
     g('conflict-wrap').style.display='block';
+    g('reset-wrap').style.display='block';
     g('rep-wrap').style.display='block';
     loadConflictAlerts();
     activeLocId=null;
@@ -1674,6 +1686,18 @@ async function dismissConflict(id){
     loadConflictAlerts();
   }catch(e){}
 }
+async function resetAllData(){
+  var t=T[lang];
+  if(!confirm(t.resetConfirm1||'Delete ALL workers, logs, rosters and reports? This cannot be undone.')) return;
+  if(!confirm(t.resetConfirm2||'Are you absolutely sure? All data will be permanently deleted.')) return;
+  try{
+    var r=await api('/api/reset_data',{method:'POST',body:{}});
+    if(!r.ok) throw new Error();
+    toast(t.resetDone||'All data deleted');
+    await load();
+  }catch(e){toast(t.errServer)}
+}
+
 // ── Worker Notes ──────────────────────────────────────────────────────────
 var editingNoteWid=null;
 function openNoteModal(wid){

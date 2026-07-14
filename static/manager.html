@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#4f46e5"/>
 <link rel="manifest" href="/manifest-manager.json"/>
 <link rel="apple-touch-icon" href="/icons/manager-180.png"/>
-<title>דחפורי הנגב</title>
+<title>דחפורי הנגב בע"מ</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1e293b;min-height:100svh}
@@ -171,7 +171,7 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
     <button class="lang-btn" onclick="setLang('ar')">ع</button>
   </div>
   <div class="login-card">
-    <div class="login-logo">דחפורי הנגב</div>
+    <div class="login-logo">דחפורי הנגב בע"מ</div>
     <div class="login-sub" id="login-sub">Manager Login</div>
     <div id="login-form">
       <div class="login-field">
@@ -208,7 +208,7 @@ body.he .modal-field label,body.ar .modal-field label{text-transform:none;letter
 <!-- APP -->
 <div id="app">
   <header>
-    <div class="logo">דחפורי הנגב</div>
+    <div class="logo">דחפורי הנגב בע"מ</div>
     <div class="header-right">
       <div class="lang-btns">
         <button class="lang-btn" onclick="setLang('he')">עב</button>
@@ -1435,7 +1435,7 @@ function downloadReportExcel(){
   var t=T[lang];
   var isDays=trackingMode==='days';
   var monthName=t.MONTHS[lastReportMonth-1]+' '+lastReportYear;
-  var rows=[['דחפורי הנגב — '+monthName],[]];
+  var rows=[['דחפורי הנגב בע"מ — '+monthName],[]];
   var wageHdr=t.wageCol||'Wage (₪)';
   var dailyHdr=t.wageLbl||'Daily Wage';
   var bonHdr=t.bonusLbl||'Plus / Bonus';
@@ -1512,7 +1512,7 @@ function downloadReportPDF(){
       +'<td style="padding:10px 12px;text-align:end">'+wageCell+'</td></tr>');
   }
   var html='<!DOCTYPE html><html dir="'+(isRTL?'rtl':'ltr')+'" lang="'+lang+'">'
-    +'<head><meta charset="UTF-8"><title>דחפורי הנגב Report</title>'
+    +'<head><meta charset="UTF-8"><title>דחפורי הנגב בע"מ Report</title>'
     +'<style>body{font-family:Arial,sans-serif;padding:32px;color:#1e293b}'
     +'h1{font-size:22px;color:#4f46e5;margin-bottom:4px}'
     +'h2{font-size:14px;color:#94a3b8;font-weight:400;margin-bottom:24px}'
@@ -1523,7 +1523,7 @@ function downloadReportPDF(){
     +'tbody tr:hover{background:#ede9fe}'
     +'@media print{body{padding:16px}button{display:none}}'
     +'</style></head><body>'
-    +'<h1>דחפורי הנגב</h1><h2>'+monthName+'</h2>'
+    +'<h1>דחפורי הנגב בע"מ</h1><h2>'+monthName+'</h2>'
     +(function(){
         var pdfWageSum=0,pdfDaysSum=0,pdfHrsSum=0;
         for(var pi=0;pi<lastReportData.length;pi++){pdfWageSum+=lastReportData[pi].total_wage||0;pdfDaysSum+=lastReportData[pi].sessions||0;pdfHrsSum+=lastReportData[pi].total_ms||0;}
